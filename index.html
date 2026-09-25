@@ -861,6 +861,7 @@ $("join").onclick=async()=>{
 let scene,camera,renderer,texture,materials,sun,hemi;
 let handScene,handCamera,handGroup,heldObject=null;
 let outline,crackMesh;
+let rainMesh=null,snowMesh=null;
 const lamps=[];
 
 function atlas(){
@@ -933,6 +934,86 @@ function cubeGeometry(id){
  }
  return geo;
 }
+
+/* ---------------- Particles ---------------- */
+
+const Particles={
+ pools:new Map(),
+ registerPool(name,opts){
+  if(!scene)return;
+  const geo=new THREE.BufferGeometry();
+  const positions=new Float32Array(opts.maxCount*3);
+  const colors=new Float32Array(opts.maxCount*3);
+  const sizes=new Float32Array(opts.maxCount);
+  geo.setAttribute("position",new THREE.BufferAttribute(positions,3));
+  geo.setAttribute("color",new THREE.BufferAttribute(colors,3));
+  geo.setAttribute("size",new THREE.BufferAttribute(sizes,1));
+  const mat=new THREE.PointsMaterial({
+   size:opts.size||0.1,
+   vertexColors:true,
+   transparent:true,
+   blending:opts.blending||THREE.NormalBlending,
+   depthWrite:false,
+   sizeAttenuation:true
+  });
+  const points=new THREE.Points(geo,mat);
+  scene.add(points);
+  this.pools.set(name,{
+   points,geo,mat,maxCount:opts.maxCount,
+   particles:[],
+   active:0
+  });
+ },
+ spawn(poolName,opts){
+  const pool=this.pools.get(poolName);
+  if(!pool||pool.active>=pool.maxCount)return;
+  const p={
+   position:new THREE.Vector3(...(opts.position||[0,0,0])),
+   velocity:new THREE.Vector3(...(opts.velocity||[0,0,0])),
+   color:new THREE.Color(opts.color||"#fff"),
+   size:opts.size||0.1,
+   life:opts.life||1,
+   maxLife:opts.life||1,
+   gravityScale:opts.gravityScale||1,
+   fade:opts.fade!==false
+  };
+  pool.particles.push(p);
+  pool.active++;
+ },
+ update(dt){
+  const GRAVITY=24;
+  for(const [name,pool] of this.pools){
+   const posAttr=pool.geo.getAttribute("position");
+   const colAttr=pool.geo.getAttribute("color");
+   const sizeAttr=pool.geo.getAttribute("size");
+   let writeIdx=0;
+   for(let i=pool.particles.length-1;i>=0;i--){
+    const p=pool.particles[i];
+    p.velocity.y-=GRAVITY*p.gravityScale*dt;
+    p.position.addScaledVector(p.velocity,dt);
+    p.life-=dt;
+    if(p.life<=0){
+     pool.particles.splice(i,1);
+     pool.active--;
+     continue;
+    }
+    posAttr.setXYZ(writeIdx,p.position.x-origin.x,p.position.y,p.position.z-origin.z);
+    const alpha=p.fade?(p.life/p.maxLife):1;
+    colAttr.setXYZ(writeIdx,p.color.r*alpha,p.color.g*alpha,p.color.b*alpha);
+    sizeAttr.setX(writeIdx,p.size*alpha);
+    writeIdx++;
+   }
+   for(let i=writeIdx;i<pool.maxCount;i++){
+    posAttr.setXYZ(i,0,-1000,0);
+    sizeAttr.setX(i,0);
+   }
+   posAttr.needsUpdate=true;
+   colAttr.needsUpdate=true;
+   sizeAttr.needsUpdate=true;
+  }
+ }
+};
+
 function initThreeOnce(){
  if(renderer)return;
  scene=new THREE.Scene();scene.background=new THREE.Color("#94cfe8");
@@ -1107,6 +1188,10 @@ function initThreeOnce(){
  handGroup=new THREE.Group();handScene.add(handGroup);
  const arm=new THREE.Mesh(new THREE.BoxGeometry(.17,.34,.18),new THREE.MeshLambertMaterial({color:"#527c73"}));
  arm.position.set(.15,-.22,.13);handGroup.add(arm);
+ 
+ Particles.registerPool("dust",{maxCount:200,size:0.08});
+ Particles.registerPool("splash",{maxCount:100,size:0.12});
+ Particles.registerPool("fire",{maxCount:50,size:0.15,blending:THREE.AdditiveBlending});
 }
 
 /* ---------------- Workers/chunks ---------------- */
@@ -1352,88 +1437,6 @@ function spawnBlockDebris(x,y,z,blockId){
   });
  }
 }
-
-/* ---------------- Particles ---------------- */
-
-const Particles={
- pools:new Map(),
- registerPool(name,opts){
-  const geo=new THREE.BufferGeometry();
-  const positions=new Float32Array(opts.maxCount*3);
-  const colors=new Float32Array(opts.maxCount*3);
-  const sizes=new Float32Array(opts.maxCount);
-  geo.setAttribute("position",new THREE.BufferAttribute(positions,3));
-  geo.setAttribute("color",new THREE.BufferAttribute(colors,3));
-  geo.setAttribute("size",new THREE.BufferAttribute(sizes,1));
-  const mat=new THREE.PointsMaterial({
-   size:opts.size||0.1,
-   vertexColors:true,
-   transparent:true,
-   blending:opts.blending||THREE.NormalBlending,
-   depthWrite:false,
-   sizeAttenuation:true
-  });
-  const points=new THREE.Points(geo,mat);
-  scene.add(points);
-  this.pools.set(name,{
-   points,geo,mat,maxCount:opts.maxCount,
-   particles:[],
-   active:0
-  });
- },
- spawn(poolName,opts){
-  const pool=this.pools.get(poolName);
-  if(!pool||pool.active>=pool.maxCount)return;
-  const p={
-   position:new THREE.Vector3(...(opts.position||[0,0,0])),
-   velocity:new THREE.Vector3(...(opts.velocity||[0,0,0])),
-   color:new THREE.Color(opts.color||"#fff"),
-   size:opts.size||0.1,
-   life:opts.life||1,
-   maxLife:opts.life||1,
-   gravityScale:opts.gravityScale||1,
-   fade:opts.fade!==false
-  };
-  pool.particles.push(p);
-  pool.active++;
- },
- update(dt){
-  const GRAVITY=24;
-  for(const [name,pool] of this.pools){
-   const posAttr=pool.geo.getAttribute("position");
-   const colAttr=pool.geo.getAttribute("color");
-   const sizeAttr=pool.geo.getAttribute("size");
-   let writeIdx=0;
-   for(let i=pool.particles.length-1;i>=0;i--){
-    const p=pool.particles[i];
-    p.velocity.y-=GRAVITY*p.gravityScale*dt;
-    p.position.addScaledVector(p.velocity,dt);
-    p.life-=dt;
-    if(p.life<=0){
-     pool.particles.splice(i,1);
-     pool.active--;
-     continue;
-    }
-    posAttr.setXYZ(writeIdx,p.position.x-origin.x,p.position.y,p.position.z-origin.z);
-    const alpha=p.fade?(p.life/p.maxLife):1;
-    colAttr.setXYZ(writeIdx,p.color.r*alpha,p.color.g*alpha,p.color.b*alpha);
-    sizeAttr.setX(writeIdx,p.size*alpha);
-    writeIdx++;
-   }
-   for(let i=writeIdx;i<pool.maxCount;i++){
-    posAttr.setXYZ(i,0,-1000,0);
-    sizeAttr.setX(i,0);
-   }
-   posAttr.needsUpdate=true;
-   colAttr.needsUpdate=true;
-   sizeAttr.needsUpdate=true;
-  }
- }
-};
-
-Particles.registerPool("dust",{maxCount:200,size:0.08});
-Particles.registerPool("splash",{maxCount:100,size:0.12});
-Particles.registerPool("fire",{maxCount:50,size:0.15,blending:THREE.AdditiveBlending});
 
 /* ---------------- Inventory ---------------- */
 
@@ -1995,8 +1998,8 @@ function sendSnapshots(c){
 
 /* ---------------- Weather ---------------- */
 
-let rainMesh=null,snowMesh=null;
 function initWeather(){
+ if(rainMesh)return;
  const rainGeo=new THREE.BufferGeometry();
  const rainPos=new Float32Array(500*3);
  rainGeo.setAttribute("position",new THREE.BufferAttribute(rainPos,3));
