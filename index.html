@@ -1,280 +1,207 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BlockWorld Next v3</title>
+<title>BlockWorld Next</title>
 <style>
 :root{
- --bg:#0d1520f2;--panel:#111b24ed;--line:#ffffff22;--accent:#a8e86d;
- --text:#f4f7f0;--muted:#9db3a8;--danger:#d84855
+ --bg:#0c151deF;--panel:#101b24f2;--line:#ffffff20;
+ --accent:#b6ed79;--text:#f1f5ed;--muted:#9fafaa;--danger:#94464b
 }
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box}
 html,body{
- width:100%;height:100%;overflow:hidden;background:#0d1520;
- color:var(--text);font:14px/1.5 system-ui,sans-serif;user-select:none
+ margin:0;width:100%;height:100%;overflow:hidden;background:#101820;
+ color:var(--text);font:14px system-ui,Segoe UI,sans-serif;user-select:none
 }
 canvas{display:block}
 button,input,select,textarea{font:inherit;color:inherit}
-button{cursor:pointer;transition:.15s}
-button:disabled{opacity:.4;cursor:default}
+button,input,select,textarea{
+ border:1px solid var(--line);border-radius:9px;padding:10px;background:#202c34
+}
+button{cursor:pointer}
+button:hover{filter:brightness(1.12)}
+button.primary{background:var(--accent);color:#203024;font-weight:800}
+button.danger{background:var(--danger)}
+input,select,textarea{width:100%}
 .hidden{display:none!important}
+.small{font-size:11px;color:var(--muted)}
+.row{display:flex;gap:8px;margin:8px 0}.row>*{flex:1}
+hr{border:0;border-top:1px solid var(--line);margin:17px 0}
 
-/* Overlay система */
 .overlay{
- position:fixed;inset:0;z-index:100;display:flex;align-items:center;
- justify-content:center;padding:20px;
- background:radial-gradient(ellipse at 50% 30%,#1a3a4540,#060d15dd);
- backdrop-filter:blur(9px)
+ position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+ padding:20px;background:radial-gradient(circle at 50% 25%,#416f8650,#071016e5);
+ backdrop-filter:blur(8px)
 }
 .panel{
- width:min(750px,100%);max-height:94vh;overflow:auto;padding:32px;
- border:1px solid var(--line);border-radius:20px;background:var(--panel);
- box-shadow:0 30px 120px #0008
+ width:min(760px,100%);max-height:94vh;overflow:auto;padding:28px;
+ border:1px solid var(--line);border-radius:22px;background:var(--panel);
+ box-shadow:0 30px 100px #0008
 }
-.eyebrow{
- color:var(--accent);font-size:11px;font-weight:800;letter-spacing:3px;
- text-transform:uppercase;margin-bottom:8px
-}
-h1{font-size:52px;line-height:1;letter-spacing:-2.8px;margin:8px 0 12px}
-h2{font-size:28px;letter-spacing:-1.2px;margin:10px 0}
-.subtitle{color:var(--muted);line-height:1.65;margin-bottom:20px}
-hr{border:0;border-top:1px solid var(--line);margin:18px 0}
+h1{font-size:48px;letter-spacing:-2.5px;line-height:1;margin:8px 0 12px}
+h2{margin:5px 0 15px}
+.eyebrow{color:var(--accent);font-size:11px;font-weight:800;letter-spacing:3px}
+.subtitle{color:var(--muted);line-height:1.55;margin-bottom:20px}
 
-/* Кнопки и инпуты */
-button,input,select,textarea{
- border:1px solid var(--line);border-radius:9px;padding:10px 14px;
- background:#1a252e
+.world{
+ display:flex;gap:9px;align-items:center;background:#ffffff09;border:1px solid #ffffff10;
+ border-radius:11px;padding:11px;margin:7px 0
 }
-button.primary{background:var(--accent);color:#1a2b1f;font-weight:800}
-button.primary:hover:not(:disabled){background:#beff88}
-button.secondary{background:#ffffff0a}
-button.secondary:hover:not(:disabled){background:#ffffff15}
-button.danger{background:var(--danger);color:#fff;font-weight:700}
-button.danger:hover:not(:disabled){background:#ff5b6a}
-input,select,textarea{width:100%;margin:5px 0}
-.row{display:flex;gap:10px;margin:8px 0}.row>*{flex:1}
+.worldInfo{flex:1}.worldInfo b{display:block}
+#worlds{max-height:220px;overflow:auto}
 
-/* Списки миров */
-.world-list{max-height:260px;overflow:auto;margin:15px 0}
-.world-item{
- display:flex;align-items:center;gap:12px;padding:13px;margin:8px 0;
- background:#ffffff08;border:1px solid var(--line);border-radius:12px
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none}
+#cross{
+ position:absolute;left:50%;top:50%;width:18px;height:18px;
+ transform:translate(-50%,-50%);opacity:0
 }
-.world-info{flex:1}
-.world-info b{display:block;font-size:15px;margin-bottom:3px}
-.world-info small{font-size:11px;color:var(--muted)}
-
-/* HUD */
-#hud{position:fixed;inset:0;pointer-events:none;z-index:50}
-.hud-badge{
- background:#0d1520c8;border:1px solid var(--line);border-radius:13px;
- backdrop-filter:blur(10px);padding:10px 14px
+#cross:before,#cross:after{content:"";position:absolute;background:#fff;border-radius:2px}
+#cross:before{left:8px;top:2px;width:2px;height:14px}
+#cross:after{left:2px;top:8px;width:14px;height:2px}
+#stats,#status{
+ position:absolute;top:14px;padding:9px 12px;border-radius:10px;
+ background:#101820bd;border:1px solid var(--line)
 }
-#brand{position:absolute;top:16px;left:16px;display:flex;align-items:center;gap:11px}
-.brand-icon{
- width:30px;height:30px;background:#a8e86d;border-radius:4px;
- box-shadow:inset -9px -8px #6b9445,inset 0 8px #c5ffaa;transform:rotate(-9deg)
-}
-#brand strong{font-size:13px;letter-spacing:2.2px}
-#brand small{font-size:10px;color:#b5ccc0;letter-spacing:1px}
-#stats{
- position:absolute;top:16px;right:16px;text-align:right;
- font:11px/1.7 monospace;white-space:pre
-}
-#crosshair{
- position:absolute;left:50%;top:50%;width:20px;height:20px;
- transform:translate(-50%,-50%);filter:drop-shadow(0 1px 2px #000);opacity:0
-}
-#crosshair:before,#crosshair:after{
- content:"";position:absolute;background:#fffffff0;border-radius:2px
-}
-#crosshair:before{left:9px;top:3px;width:2px;height:14px}
-#crosshair:after{left:3px;top:9px;width:14px;height:2px}
+#stats{right:14px;font:11px/1.55 monospace;white-space:pre;text-align:right}
+#status{left:14px}
 #target{
- position:absolute;top:calc(50% + 30px);left:50%;transform:translateX(-50%);
- font-size:12px;text-shadow:0 2px 5px #000
+ position:absolute;left:50%;top:calc(50% + 25px);transform:translateX(-50%);
+ text-shadow:0 2px 5px #000;font-size:11px
 }
-#breakbar{
- position:absolute;top:calc(50% + 52px);left:50%;transform:translateX(-50%);
- width:95px;height:5px;background:#0007;border-radius:5px;overflow:hidden;opacity:0
+#break{
+ position:absolute;left:50%;top:calc(50% + 44px);transform:translateX(-50%);
+ width:90px;height:4px;border-radius:5px;overflow:hidden;background:#0008;opacity:0
 }
-#breakfill{height:100%;width:0;background:var(--accent);transition:width .05s linear}
-#bottom{
- position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
- text-align:center
-}
-#selectedName{
- height:32px;font-size:14px;font-weight:700;text-shadow:0 2px 6px #000;
- margin-bottom:8px
-}
+#breakFill{height:100%;background:var(--accent);width:0}
 #hotbar{
- display:flex;gap:5px;padding:8px;border-radius:14px;
- background:#0d1520d8;border:1px solid var(--line)
+ position:absolute;bottom:18px;left:50%;transform:translateX(-50%);
+ display:flex;gap:4px;padding:6px;background:#101820d8;border:1px solid var(--line);
+ border-radius:13px;pointer-events:auto
 }
 .slot{
- width:56px;height:58px;position:relative;display:flex;align-items:center;
- justify-content:center;border:2px solid transparent;border-radius:9px;
- background:#ffffff09;cursor:pointer
+ width:54px;height:55px;border:2px solid transparent;border-radius:7px;
+ background:#ffffff09;display:flex;align-items:center;justify-content:center;position:relative
 }
-.slot.active{border-color:var(--accent);background:#a8e86d20;transform:translateY(-4px)}
-.slot .num{position:absolute;top:3px;left:5px;font-size:9px;color:#a5bfb3}
-.slot .count{
- position:absolute;bottom:2px;right:5px;font-size:12px;font-weight:600;
- text-shadow:0 1px 3px #000
+.slot.active{border-color:var(--accent);transform:translateY(-4px);background:#b7eb781d}
+.slot .num{position:absolute;left:4px;top:2px;font-size:9px;color:#aaa}
+.slot .count{position:absolute;right:4px;bottom:1px;font-size:11px;text-shadow:0 1px 3px #000}
+.icon{
+ width:31px;height:31px;background-size:100% 100%;image-rendering:pixelated;
+ box-shadow:inset -5px -5px #0002;border-radius:2px
 }
-.block-icon{
- width:32px;height:32px;image-rendering:pixelated;border-radius:3px;
- box-shadow:inset -5px -5px #0003,2px 3px #0004;transform:rotate(-6deg)
-}
-#mode{
- position:absolute;left:16px;bottom:20px;font-size:11px;line-height:1.7;
- text-shadow:0 2px 4px #000;color:#d8e7deb0
-}
+#mode{position:absolute;left:14px;bottom:16px;font:11px/1.6 monospace;text-shadow:0 2px 4px #000}
 #toast{
- position:absolute;top:90px;left:50%;transform:translate(-50%,-15px);
- padding:12px 20px;opacity:0;transition:.25s;border-radius:11px;
- max-width:85%;text-align:center
+ position:absolute;left:50%;top:13%;transform:translateX(-50%);
+ background:#101820e8;border:1px solid var(--line);padding:10px 16px;
+ border-radius:10px;opacity:0;transition:.2s
 }
-#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast.show{opacity:1}
 
-/* Инвентарь */
-#inventory .panel{width:min(1100px,100%);max-height:96vh}
-#palette{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin:18px 0}
-.item-btn{
- display:flex;align-items:center;gap:13px;text-align:left;padding:13px 12px;
- border:1px solid var(--line);border-radius:10px;background:#ffffff08
+#inventory .panel{width:min(1000px,100%)}
+#palette{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:15px 0}
+.item{
+ display:flex;gap:10px;align-items:center;text-align:left;background:#ffffff08;
+ border:1px solid var(--line)
 }
-.item-btn:hover{border-color:var(--accent);background:#a8e86d18}
-.item-btn strong{display:block;font-size:13px}
-.item-btn small{font-size:10px;color:var(--muted)}
-#survivalView{display:grid;grid-template-columns:540px 1fr;gap:25px;margin:20px 0}
-#bag{display:grid;grid-template-columns:repeat(9,56px);gap:5px}
-#recipes{max-height:380px;overflow:auto}
+.item:hover{border-color:var(--accent)}
+#bag{display:grid;grid-template-columns:repeat(9,54px);gap:5px;margin:16px 0}
+.invslot{
+ width:54px;height:54px;border:1px solid var(--line);border-radius:7px;
+ background:#ffffff08;position:relative;display:flex;align-items:center;justify-content:center
+}
+.invslot .count{position:absolute;right:3px;bottom:1px}
+#recipes{margin:12px 0}
 .recipe{
- display:flex;align-items:center;justify-content:space-between;gap:12px;
- padding:11px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;
- background:#ffffff05
-}
-.recipe strong{font-size:13px}
-.recipe small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
-#carry{
- position:fixed;z-index:200;pointer-events:none;padding:9px 14px;
- background:#1a3a30f5;border:1px solid var(--accent);border-radius:9px;
- font-size:13px;font-weight:600
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ border:1px solid var(--line);padding:9px;border-radius:8px;margin:5px 0
 }
 
-/* Консоль */
-#console{position:fixed;bottom:0;left:0;right:0;z-index:90;max-height:45vh}
-#consoleOutput{
- background:#0a0f16f8;border-top:1px solid var(--line);padding:12px;
- max-height:40vh;overflow:auto;font:12px/1.6 monospace;color:#d0e0d8
+.tabs{display:flex;gap:5px;margin:12px 0}
+.tabs button.active{background:var(--accent);color:#203024}
+.adminPage{display:none}.adminPage.active{display:block}
+.playerRow{
+ display:grid;grid-template-columns:1fr 130px 100px;gap:7px;align-items:center;
+ padding:8px;border-bottom:1px solid var(--line)
 }
-#consoleInput{
- display:flex;gap:8px;padding:10px;background:#0d1520;
- border-top:1px solid var(--line)
+#console{
+ position:fixed;z-index:80;left:12px;right:12px;bottom:12px;
+ background:#071016f3;border:1px solid var(--line);border-radius:12px;padding:10px
 }
-#consoleInput input{flex:1;font-family:monospace}
+#consoleLog{
+ height:180px;overflow:auto;white-space:pre-wrap;font:12px/1.5 monospace;
+ margin-bottom:7px;user-select:text
+}
+#console .row{margin:0}
+.skin{
+ width:44px;height:44px;border:3px solid transparent;border-radius:8px;
+ display:inline-block;margin:4px;cursor:pointer
+}
+.skin.selected{border-color:var(--accent)}
+.settings{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{color:#bac8c0;font-size:11px}
+textarea{resize:vertical;min-height:160px;font-family:monospace;user-select:text}
 
-/* Админка */
-.admin-tabs{display:flex;gap:8px;margin-bottom:18px;border-bottom:1px solid var(--line)}
-.admin-tab{
- padding:10px 16px;background:transparent;border:0;border-radius:8px 8px 0 0;
- cursor:pointer;font-weight:600;opacity:.6
-}
-.admin-tab.active{background:var(--accent);color:#1a2b1f;opacity:1}
-.admin-section{display:none}
-.admin-section.active{display:block}
-.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:15px 0}
-.player-item{
- display:flex;align-items:center;justify-content:space-between;padding:11px;
- border:1px solid var(--line);border-radius:9px;background:#ffffff06;margin:6px 0
-}
-
-/* Профиль */
-.skin-preset{
- display:inline-block;width:50px;height:50px;border:2px solid var(--line);
- border-radius:8px;margin:5px;cursor:pointer;transition:.2s
-}
-.skin-preset.selected{border-color:var(--accent);box-shadow:0 0 0 3px #a8e86d30}
-
-@media(max-width:900px){
- #survivalView{grid-template-columns:1fr}
- #palette{grid-template-columns:repeat(3,1fr)}
- .panel{padding:22px}
+@media(max-width:720px){
+ #palette{grid-template-columns:repeat(2,1fr)}
+ #bag{grid-template-columns:repeat(6,54px)}
+ .panel{padding:20px}
 }
 </style>
 </head>
 <body>
 
-<canvas id="game"></canvas>
+<canvas id="game" tabindex="0"></canvas>
 
-<div id="hud" class="hidden">
- <div id="brand" class="hud-badge">
-  <div class="brand-icon"></div>
-  <div><strong>BLOCKWORLD NEXT</strong><small>V3 · MULTIPLAYER EDITION</small></div>
- </div>
- <div id="stats" class="hud-badge"></div>
- <div id="crosshair"></div>
- <div id="target"></div>
- <div id="breakbar"><div id="breakfill"></div></div>
- <div id="bottom">
-  <div id="selectedName"></div>
-  <div id="hotbar"></div>
- </div>
- <div id="mode"></div>
- <div id="toast" class="hud-badge"></div>
-</div>
-
-<!-- Главное меню -->
-<div id="mainMenu" class="overlay">
+<div id="main" class="overlay">
  <div class="panel">
-  <div class="eyebrow">SANDBOX MULTIPLAYER</div>
-  <h1>Твой блочный мир.</h1>
-  <p class="subtitle">
-   Строй в одиночку или с друзьями. Режим творчества и выживания.<br>
-   P2P-мультиплеер, права доступа, моды и консольные команды.
-  </p>
-  
-  <div class="eyebrow" style="margin-top:25px">МОЙ ПРОФИЛЬ</div>
-  <input id="profileName" placeholder="Имя игрока" maxlength="20">
-  <div id="skinPicker"></div>
-  
+  <div class="eyebrow">BLOCKWORLD NEXT</div>
+  <h1>Большой кубический мир.</h1>
+  <div class="subtitle">Одиночная игра, P2P-мультиплеер, инвентарь, профили, права и расширяемая игровая основа.</div>
+
+  <b>Профиль</b>
+  <input id="nickname" maxlength="20" placeholder="Ник">
+  <div id="skins"></div>
+
   <hr>
   <b>Мои миры</b>
-  <div id="worldList" class="world-list"></div>
-  
+  <div id="worlds"></div>
+
+  <hr>
+  <b>Новый мир</b>
+  <input id="worldName" value="Моя поляна" placeholder="Название">
   <div class="row">
-   <input id="newWorldName" placeholder="Название мира">
-   <select id="newWorldMode">
+   <input id="seed" placeholder="Seed — пусто = случайный">
+   <select id="newMode">
     <option value="creative">Творчество</option>
     <option value="survival">Выживание</option>
    </select>
   </div>
-  <button id="createWorld" class="primary" style="width:100%">Создать мир</button>
-  
+  <button id="create" class="primary" style="width:100%">Создать мир / сервер</button>
+
   <hr>
   <b>Мультиплеер</b>
   <div class="row">
-   <input id="serverID" placeholder="ID сервера">
-   <button id="joinServer" class="secondary">Подключиться</button>
+   <input id="joinId" placeholder="Server ID">
+   <button id="join">Подключиться</button>
   </div>
-  <small style="color:var(--muted)">PeerJS · прямое P2P-соединение</small>
+  <div class="small">Для сетевой игры страница должна иметь доступ к PeerJS.</div>
  </div>
 </div>
 
-<!-- Пауза -->
-<div id="pauseMenu" class="overlay hidden">
- <div class="panel" style="max-width:620px">
+<div id="pause" class="overlay hidden">
+ <div class="panel" style="max-width:600px">
   <div class="eyebrow">ПАУЗА</div>
-  <h2>BlockWorld Next</h2>
+  <h2>BlockWorld</h2>
   <div id="serverInfo" class="subtitle"></div>
-  
-  <div class="row">
-   <label>Дальность<input id="distance" type="range" min="2" max="6" value="3"></label>
-   <label>Чувствительность<input id="sensitivity" type="range" min=".4" max="2.5" step=".1" value="1"></label>
-  </div>
-  <div class="row">
+
+  <div class="settings">
+   <label>Дальность
+    <input id="distance" type="range" min="2" max="6" value="3">
+   </label>
+   <label>Чувствительность
+    <input id="sensitivity" type="range" min=".4" max="2.2" step=".1" value="1">
+   </label>
    <label>Качество
     <select id="quality">
      <option value="low">Низкое</option>
@@ -282,100 +209,102 @@ input,select,textarea{width:100%;margin:5px 0}
      <option value="high">Высокое</option>
     </select>
    </label>
-   <label><input id="headBob" type="checkbox" checked> Покачивание</label>
+   <label><input id="bob" type="checkbox" checked> Покачивание камеры</label>
   </div>
-  
+
   <hr>
-  <button class="primary" onclick="resumeGame()" style="width:100%">Продолжить игру</button>
+  <button id="resumeBtn" class="primary" style="width:100%">Продолжить / войти в игру</button>
   <div class="row">
-   <button class="secondary" onclick="openConsole()">Консоль</button>
-   <button class="secondary" onclick="openInventory()">Инвентарь (E)</button>
-   <button class="secondary" onclick="openAdmin()">Админка</button>
+   <button onclick="openInventory()">Инвентарь</button>
+   <button onclick="openConsole()">Консоль</button>
+   <button onclick="openAdmin()">Админка</button>
   </div>
   <div class="row">
-   <button class="secondary" onclick="saveWorld(true)">Сохранить</button>
-   <button class="danger" onclick="leaveWorld()">Выйти в меню</button>
+   <button onclick="copyServer()">Скопировать Server ID</button>
+   <button onclick="saveWorld(true)">Сохранить</button>
+   <button class="danger" onclick="leaveWorld()">Выйти</button>
   </div>
  </div>
 </div>
 
-<!-- Инвентарь -->
 <div id="inventory" class="overlay hidden">
  <div class="panel">
-  <div class="eyebrow"><span id="invMode">ТВОРЧЕСТВО</span></div>
-  <h2 id="invTitle">Блоки и предметы</h2>
-  <p class="subtitle" id="invHint"></p>
-  
+  <div class="eyebrow" id="inventoryMode"></div>
+  <h2>Инвентарь</h2>
   <div id="palette"></div>
-  <div id="survivalView">
-   <div id="bag"></div>
-   <div id="recipes"></div>
-  </div>
-  
-  <button class="primary" onclick="closeInventory()" style="width:100%">Вернуться в мир</button>
- </div>
-</div>
-<div id="carry" class="hidden"></div>
-
-<!-- Консоль -->
-<div id="console" class="hidden">
- <div id="consoleOutput"></div>
- <div id="consoleInput">
-  <input id="consoleCmd" placeholder="Введите команду...">
-  <button class="primary" onclick="runConsoleCommand()">Выполнить</button>
-  <button class="secondary" onclick="closeConsole()">Закрыть</button>
+  <div id="bag"></div>
+  <div id="recipes"></div>
+  <button class="primary" onclick="closeInventory()" style="width:100%">Вернуться</button>
  </div>
 </div>
 
-<!-- Админка -->
 <div id="admin" class="overlay hidden">
- <div class="panel" style="max-width:700px">
-  <div class="eyebrow">АДМИН-ПАНЕЛЬ</div>
-  <h2>Управление миром</h2>
-  
-  <div class="admin-tabs">
-   <button class="admin-tab active" onclick="switchAdminTab('world')">Мир</button>
-   <button class="admin-tab" onclick="switchAdminTab('players')">Игроки</button>
-   <button class="admin-tab" onclick="switchAdminTab('permissions')">Права</button>
-   <button class="admin-tab" onclick="switchAdminTab('scripts')">Скрипты</button>
+ <div class="panel">
+  <div class="eyebrow">WORLD ADMIN</div>
+  <h2>Управление сервером</h2>
+  <div class="tabs">
+   <button class="active" onclick="adminTab('world',this)">Мир</button>
+   <button onclick="adminTab('players',this)">Игроки</button>
+   <button onclick="adminTab('scripts',this)">Скрипт</button>
   </div>
-  
-  <div id="adminWorld" class="admin-section active">
-   <div class="admin-grid">
-    <button class="secondary" onclick="execCommand('/time day')">День</button>
-    <button class="secondary" onclick="execCommand('/time night')">Ночь</button>
-    <button class="secondary" onclick="execCommand('/home')">На спавн</button>
-    <button class="secondary" onclick="saveWorld(true)">Сохранить</button>
+
+  <div id="admin-world" class="adminPage active">
+   <div class="row">
+    <button onclick="runCommand('/time day')">День</button>
+    <button onclick="runCommand('/time night')">Ночь</button>
+    <button onclick="runCommand('/home')">На спавн</button>
    </div>
+   <div class="small">Изменение мира и режимов проверяется хостом.</div>
   </div>
-  
-  <div id="adminPlayers" class="admin-section">
-   <div id="playersList"></div>
+
+  <div id="admin-players" class="adminPage">
+   <div id="players"></div>
   </div>
-  
-  <div id="adminPerms" class="admin-section">
-   <p class="subtitle">Управление правами доступа</p>
-   <div id="permsList"></div>
+
+  <div id="admin-scripts" class="adminPage">
+   <div class="small">Локальный realtime-скрипт владельца. API: api.toast(), api.setBlock(), api.getBlock(), api.give(), api.spawnCube().</div>
+   <textarea id="scriptEditor">// Пример:
+api.toast("Скрипт запущен");
+api.spawnCube(
+ player.position.x + 2,
+ player.position.y + 1,
+ player.position.z,
+ "#ff8844"
+);</textarea>
+   <button onclick="runRuntimeScript()" class="primary" style="width:100%;margin-top:7px">Выполнить</button>
   </div>
-  
-  <div id="adminScripts" class="admin-section">
-   <p class="subtitle">Скрипты и моды</p>
-   <textarea id="scriptEditor" rows="12" placeholder="// JavaScript код мода"></textarea>
-   <button class="primary" style="width:100%;margin-top:10px" onclick="runScript()">Загрузить скрипт</button>
-  </div>
-  
+
   <hr>
-  <button class="primary" onclick="closeAdmin()" style="width:100%">Назад</button>
+  <button onclick="closeAdmin()" class="primary" style="width:100%">Назад</button>
  </div>
 </div>
 
-<!-- ========== WORKER: GENERATION + MESHING ========== -->
+<div id="console" class="hidden">
+ <div id="consoleLog"></div>
+ <div class="row">
+  <input id="consoleInput" placeholder="/help">
+  <button id="consoleRun">Выполнить</button>
+  <button onclick="closeConsole()">×</button>
+ </div>
+</div>
+
+<div id="hud" class="hidden">
+ <div id="cross"></div>
+ <div id="status">Загрузка мира…</div>
+ <div id="stats"></div>
+ <div id="target"></div>
+ <div id="break"><div id="breakFill"></div></div>
+ <div id="hotbar"></div>
+ <div id="mode"></div>
+ <div id="toast"></div>
+</div>
+
 <script id="worker" type="text/plain">
 "use strict";
-const S=16,H=80,P=18;
-let seed=1,defs=[],ids={},ores=[],dimData={};
+const S=16,H=72,P=18;
+let seed=1,defs=[],ids={};
 
-const mix=(a,b,t)=>a+(b-a)*t,fade=t=>t*t*(3-2*t);
+const fade=t=>t*t*(3-2*t),mix=(a,b,t)=>a+(b-a)*t;
 function hash(x,y,z,s=0){
  let h=Math.imul(x,374761393)^Math.imul(y,668265263)^Math.imul(z,1442695041)^s;
  h=Math.imul(h^(h>>>13),1274126177);
@@ -384,146 +313,133 @@ function hash(x,y,z,s=0){
 function noise(x,z,s){
  const ix=Math.floor(x),iz=Math.floor(z),u=fade(x-ix),v=fade(z-iz);
  return mix(mix(hash(ix,0,iz,s),hash(ix+1,0,iz,s),u),
-  mix(hash(ix,0,iz+1,s),hash(ix+1,0,iz+1,s),u),v);
+            mix(hash(ix,0,iz+1,s),hash(ix+1,0,iz+1,s),u),v);
 }
 function noise3(x,y,z,s){
  const iy=Math.floor(y),v=fade(y-iy);
- return mix(noise(x,z,s^Math.imul(iy,7919)),noise(x,z,s^Math.imul(iy+1,7919)),v);
+ return mix(noise(x,z,s^Math.imul(iy,7919)),
+            noise(x,z,s^Math.imul(iy+1,7919)),v);
 }
-
-function generate(cx,cz,dim){
- const arr=new Uint16Array(S*S*H);
- const id=n=>ids[n]||0,idx=(x,y,z)=>x+S*(z+S*y);
- const set=(x,y,z,b)=>{
-  if(x>=0&&x<S&&z>=0&&z<S&&y>=0&&y<H)arr[idx(x,y,z)]=typeof b==="string"?id(b):b;
- };
- 
- const base=dim.baseHeight||12,amp=dim.amplitude||17,sea=dim.waterLevel||17;
- const grass=id("core:grass"),dirt=id("core:dirt"),stone=id("core:stone");
- const sand=id("core:sand"),water=id("core:water");
- 
+function generate(cx,cz){
+ const a=new Uint16Array(S*S*H),idx=(x,y,z)=>x+S*(z+S*y);
+ const id=k=>ids[k]||0,sea=17;
  function rawHeight(wx,wz){
-  return base+noise(wx/50,wz/50,seed+11)*amp+
+  return 11+noise(wx/50,wz/50,seed+11)*18+
    noise(wx/20,wz/20,seed+27)*6+noise(wx/7,wz/7,seed+81)*2;
  }
- const home=Math.max(sea+3,Math.floor(rawHeight(0,0)));
+ const home=Math.max(20,Math.floor(rawHeight(0,0)));
  function height(wx,wz){
-  const r=Math.hypot(wx,wz),t=fade(Math.max(0,Math.min(1,(r-4)/8)));
-  return Math.max(5,Math.min(H-12,Math.floor(mix(home,rawHeight(wx,wz),t))));
+  const r=Math.hypot(wx,wz),t=fade(Math.max(0,Math.min(1,(r-4)/9)));
+  return Math.max(5,Math.min(H-11,Math.floor(mix(home,rawHeight(wx,wz),t))));
  }
- 
+ const set=(x,y,z,b)=>{
+  if(x>=0&&x<S&&z>=0&&z<S&&y>=0&&y<H)a[idx(x,y,z)]=b;
+ };
  for(let z=0;z<S;z++)for(let x=0;x<S;x++){
   const wx=cx*S+x,wz=cz*S+z,h=height(wx,wz);
-  const beach=h<=sea+1||noise(wx/18,wz/18,seed+91)>.82&&h<sea+5;
-  
+  const beach=h<=sea+1||(noise(wx/19,wz/19,seed+94)>.8&&h<sea+5);
   for(let y=0;y<=Math.max(h,sea);y++){
-   let b;
-   if(y>h)b=water;
-   else if(y===h)b=beach?sand:grass;
-   else if(y>h-3)b=dirt;
-   else b=stone;
-   
-   if(b===stone&&y>3&&y<h-5&&noise3(wx*.08,y*.11,wz*.08,seed+303)>.78)b=0;
-   
-   if(b===stone)for(const o of ores){
-    if(y<o.minY||y>o.maxY)continue;
-    const q=o.size;
-    if(hash(Math.floor(wx/q),Math.floor(y/q),Math.floor(wz/q),seed+o.salt)<o.chance&&
-       hash(wx,y,wz,seed+o.salt+91)>.25){b=o.id;break}
-   }
+   let b=y===0?id("core:bedrock"):
+    y>h?id("core:water"):
+    y===h?(beach?id("core:sand"):id("core:grass")):
+    y>h-3?id("core:dirt"):id("core:stone");
+
+   if(b===id("core:stone")&&y>3&&y<h-5&&
+      noise3(wx*.08,y*.11,wz*.08,seed+201)>.79)b=0;
+
+   if(b===id("core:stone")&&y<42&&
+      hash(Math.floor(wx/4),Math.floor(y/4),Math.floor(wz/4),seed+551)<.08&&
+      hash(wx,y,wz,seed+642)>.25)b=id("core:coal_ore");
+
    set(x,y,z,b);
   }
  }
- 
- // Деревья
- if(dim.trees!==false){
-  for(let gz=Math.floor((cz*S-4)/7);gz<=Math.floor((cz*S+20)/7);gz++)
-   for(let gx=Math.floor((cx*S-4)/7);gx<=Math.floor((cx*S+20)/7);gx++){
-    if(hash(gx,0,gz,seed+160)>.55)continue;
-    const wx=gx*7+1+Math.floor(hash(gx,1,gz,seed+160)*5);
-    const wz=gz*7+1+Math.floor(hash(gx,2,gz,seed+160)*5);
-    const h=height(wx,wz);
-    if(h<=sea+2||Math.hypot(wx,wz)<8)continue;
-    
-    const lx=wx-cx*S,lz=wz-cz*S,top=h+4+Math.floor(hash(gx,3,gz,seed+160)*2);
-    for(let y=h+1;y<=top;y++)set(lx,y,lz,id("core:log"));
-    
-    for(let dy=-2;dy<=1;dy++){
-     const r=dy===1?1:2;
-     for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)
-      if(Math.abs(dx)+Math.abs(dz)<=r+1)set(lx+dx,top+dy,lz+dz,id("core:leaves"));
-    }
-   }
+
+ for(let gz=Math.floor((cz*S-4)/7);gz<=Math.floor((cz*S+20)/7);gz++)
+ for(let gx=Math.floor((cx*S-4)/7);gx<=Math.floor((cx*S+20)/7);gx++){
+  if(hash(gx,0,gz,seed+160)>.53)continue;
+  const wx=gx*7+1+Math.floor(hash(gx,1,gz,seed+160)*5);
+  const wz=gz*7+1+Math.floor(hash(gx,2,gz,seed+160)*5);
+  const h=height(wx,wz);
+  if(h<=sea+2||Math.hypot(wx,wz)<8)continue;
+  const lx=wx-cx*S,lz=wz-cz*S,top=h+4+Math.floor(hash(gx,3,gz,seed+160)*2);
+  for(let y=h+1;y<=top;y++)set(lx,y,lz,id("core:log"));
+  for(let dy=-2;dy<=1;dy++){
+   const r=dy===1?1:2;
+   for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)
+    if(Math.abs(dx)+Math.abs(dz)<=r+1)
+     set(lx+dx,top+dy,lz+dz,id("core:leaves"));
+  }
  }
- 
- return arr;
+ return a;
 }
 
 const faces=[
- {n:[1,0,0],v:[[1,0,0],[1,1,0],[1,1,1],[1,0,1]],shade:.87,t:0},
- {n:[-1,0,0],v:[[0,0,1],[0,1,1],[0,1,0],[0,0,0]],shade:.77,t:0},
- {n:[0,1,0],v:[[0,1,1],[1,1,1],[1,1,0],[0,1,0]],shade:1,t:1},
- {n:[0,-1,0],v:[[0,0,0],[1,0,0],[1,0,1],[0,0,1]],shade:.60,t:2},
- {n:[0,0,1],v:[[1,0,1],[1,1,1],[0,1,1],[0,0,1]],shade:.93,t:0},
- {n:[0,0,-1],v:[[0,0,0],[0,1,0],[1,1,0],[1,0,0]],shade:.82,t:0}
+ {n:[1,0,0], v:[[1,0,0],[1,1,0],[1,1,1],[1,0,1]],shade:.86,t:0},
+ {n:[-1,0,0],v:[[0,0,1],[0,1,1],[0,1,0],[0,0,0]],shade:.76,t:0},
+ {n:[0,1,0], v:[[0,1,1],[1,1,1],[1,1,0],[0,1,0]],shade:1,t:1},
+ {n:[0,-1,0],v:[[0,0,0],[1,0,0],[1,0,1],[0,0,1]],shade:.58,t:2},
+ {n:[0,0,1], v:[[1,0,1],[1,1,1],[0,1,1],[0,0,1]],shade:.92,t:0},
+ {n:[0,0,-1],v:[[0,0,0],[0,1,0],[1,1,0],[1,0,0]],shade:.81,t:0}
 ];
 
 function mesh(pad){
- const groups=[{p:[],n:[],u:[],c:[],i:[]},{p:[],n:[],u:[],c:[],i:[]},{p:[],n:[],u:[],c:[],i:[]}];
+ const groups=Array.from({length:3},()=>({p:[],n:[],u:[],c:[],i:[]}));
  const at=(x,y,z)=>x<0||x>=P||z<0||z>=P||y<0||y>=H+2?0:pad[x+P*(z+P*y)];
  const occ=(x,y,z)=>defs[at(x,y,z)]?.occludes?1:0;
- 
+
  for(let y=0;y<H;y++)for(let z=0;z<S;z++)for(let x=0;x<S;x++){
   const b=at(x+1,y+1,z+1);if(!b)continue;
-  const d=defs[b],g=groups[d.glow?1:d.transparent?2:0];
-  
+  const d=defs[b];
+  const group=d.water?2:d.transparent?1:0;
+  const g=groups[group];
+
   for(const f of faces){
    const [nx,ny,nz]=f.n,nb=at(x+1+nx,y+1+ny,z+1+nz);
-   if(defs[nb]?.occludes||(nb===b&&d.transparent))continue;
-   
+   if(defs[nb]?.occludes)continue;
+   if(nb===b&&d.transparent)continue;
+
    const tile=d.tiles[f.t],ox=(tile%16)*16,oy=Math.floor(tile/16)*16;
-   const u0=(ox+.1)/256,u1=(ox+15.9)/256,v0=1-(oy+15.9)/256,v1=1-(oy+.1)/256;
+   const u0=(ox+.1)/256,u1=(ox+15.9)/256;
+   const v0=1-(oy+15.9)/256,v1=1-(oy+.1)/256;
    const uv=[[u0,v0],[u0,v1],[u1,v1],[u1,v0]];
-   
-   const axis=f.n.findIndex(q=>q!==0),tang=[0,1,2].filter(q=>q!==axis);
+
+   const axis=f.n.findIndex(q=>q!==0);
+   const tang=[0,1,2].filter(q=>q!==axis);
    const base=g.p.length/3,ao=[];
-   
+
    for(let k=0;k<4;k++){
     const v=f.v[k],p=[x+1+nx,y+1+ny,z+1+nz],q=p.slice(),r=p.slice();
     const da=v[tang[0]]?1:-1,db=v[tang[1]]?1:-1;
-    p[tang[0]]+=da;q[tang[1]]+=db;r[tang[0]]+=da;r[tang[1]]+=db;
-    
+    p[tang[0]]+=da;q[tang[1]]+=db;
+    r[tang[0]]+=da;r[tang[1]]+=db;
     const s1=occ(...p),s2=occ(...q),corner=occ(...r);
-    const a=d.glow?1:f.shade*(1-.11*(s1&&s2?3:s1+s2+corner));
-    ao.push(a);
-    
+    const shade=d.glow?1:f.shade*(1-.105*(s1&&s2?3:s1+s2+corner));
+    ao.push(shade);
     g.p.push(x+v[0],y+v[1],z+v[2]);
-    g.n.push(...f.n);
-    g.u.push(...uv[k]);
-    g.c.push(a,a,a);
+    g.n.push(...f.n);g.u.push(...uv[k]);g.c.push(shade,shade,shade);
    }
-   
    if(ao[0]+ao[2]>ao[1]+ao[3])
     g.i.push(base,base+1,base+3,base+1,base+2,base+3);
-   else g.i.push(base,base+1,base+2,base,base+2,base+3);
+   else
+    g.i.push(base,base+1,base+2,base,base+2,base+3);
   }
  }
- 
+
  return groups.map(g=>({
   p:new Float32Array(g.p),n:new Float32Array(g.n),
   u:new Float32Array(g.u),c:new Float32Array(g.c),i:new Uint32Array(g.i)
  }));
 }
-
 onmessage=e=>{
  const m=e.data;
  try{
   if(m.type==="init"){
-   seed=m.seed;defs=m.defs;ids=m.ids;ores=m.ores;
+   seed=m.seed|0;defs=m.defs;ids=m.ids;
    postMessage({id:m.id});return;
   }
   if(m.type==="generate"){
-   const blocks=generate(m.cx,m.cz,m.dimension);
+   const blocks=generate(m.cx,m.cz);
    postMessage({id:m.id,blocks},[blocks.buffer]);return;
   }
   if(m.type==="mesh"){
@@ -541,571 +457,455 @@ onmessage=e=>{
 <script>
 "use strict";
 
-// ========== УТИЛИТЫ ==========
 const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const mix=(a,b,t)=>a+(b-a)*t;
-const clone=v=>JSON.parse(JSON.stringify(v));
+const S=16,H=72,REACH=6;
+const META="bwn4_worlds",PROFILE="bwn4_profile";
 
-const S=16,H=80,REACH=6;
-const META_KEY="blockworld_v3_meta";
-const PROFILE_KEY="blockworld_v3_profile";
+function hashSeed(s){
+ let h=2166136261;
+ for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}
+ return h|0;
+}
+function esc(s){
+ const d=document.createElement("div");d.textContent=s;return d.innerHTML;
+}
 
-// ========== REGISTRY ==========
-const Registry={
- blocks:[{key:"core:air",name:"Воздух",solid:false,occludes:false}],
- items:new Map(),
- recipes:[],
- dimensions:new Map(),
- entities:new Map(),
- commands:new Map(),
- permissions:new Set([
-  "build","break","fly","creative","teleport","give","summon",
-  "setblock","fill","kick","changeGamemode","editWorld","managePermissions"
- ]),
- 
- ids:{"core:air":0},
- 
- registerBlock(key,data){
-  if(this.ids[key]!==undefined)throw Error("Duplicate block: "+key);
-  const id=this.blocks.length;
-  const d={key,name:key,color:"#888",solid:true,occludes:true,transparent:false,
-   glow:false,time:.35,tool:null,drop:null,tags:[],...data,id};
-  if(d.transparent&&data.occludes===undefined)d.occludes=false;
-  d.drop=d.drop||key;
-  this.ids[key]=id;
-  this.blocks.push(d);
-  this.registerItem(key,{name:d.name,color:d.color,block:id,stack:64,tags:d.tags});
-  return id;
- },
- 
- registerItem(key,data){
-  if(this.items.has(key))throw Error("Duplicate item: "+key);
-  this.items.set(key,{key,name:key,color:"#888",stack:64,tags:[],...data});
- },
- 
- registerRecipe(key,data){
-  if(this.recipes.some(r=>r.key===key))throw Error("Duplicate recipe: "+key);
-  this.recipes.push({key,...data});
- },
- 
- registerDimension(key,data){
-  if(this.dimensions.has(key))throw Error("Duplicate dimension: "+key);
-  this.dimensions.set(key,{key,name:key,baseHeight:12,amplitude:17,waterLevel:17,
-   trees:true,gravity:24,...data});
- },
- 
- registerEntity(key,type){
-  if(this.entities.has(key))throw Error("Duplicate entity: "+key);
-  this.entities.set(key,type);
- },
- 
- registerCommand(name,fn){
-  this.commands.set(name,fn);
- }
+/* ---------------- Registries ---------------- */
+
+const Blocks=[{
+ key:"core:air",name:"Воздух",solid:false,occludes:false,color:"#000"
+}];
+const BlockID={"core:air":0};
+const Items=new Map();
+const Recipes=[];
+
+function block(key,data){
+ const id=Blocks.length;
+ const d={key,id,name:key,color:"#888",solid:true,occludes:true,
+  transparent:false,water:false,glow:false,time:.35,tool:null,drop:key,...data};
+ Blocks.push(d);BlockID[key]=id;
+ Items.set(key,{key,name:d.name,color:d.color,stack:64,block:id});
+ return id;
+}
+function item(key,data){Items.set(key,{key,name:key,color:"#aaa",stack:64,...data})}
+function recipe(name,input,output){Recipes.push({name,input,output})}
+
+block("core:grass",{name:"Дёрн",color:"#76af4e",pattern:"grass",time:.28});
+block("core:dirt",{name:"Земля",color:"#90603d",pattern:"dirt",time:.24});
+block("core:stone",{name:"Камень",color:"#848d90",pattern:"stone",time:1.25,tool:"pick",drop:"core:cobble"});
+block("core:log",{name:"Дуб",color:"#90633c",pattern:"log",time:.75});
+block("core:leaves",{name:"Листва",color:"#4b903e",pattern:"leaves",time:.15,occludes:false});
+block("core:sand",{name:"Песок",color:"#d8c58a",pattern:"sand",time:.22});
+block("core:planks",{name:"Доски",color:"#bd925a",pattern:"planks",time:.5});
+block("core:brick",{name:"Кирпич",color:"#b66550",pattern:"brick",time:1});
+block("core:lamp",{name:"Светокамень",color:"#f3d67e",pattern:"lamp",time:.4,glow:true});
+block("core:cobble",{name:"Булыжник",color:"#737d81",pattern:"stone",time:1,tool:"pick"});
+block("core:coal_ore",{name:"Угольная руда",color:"#777f81",pattern:"coal",time:1.5,tool:"pick",drop:"core:coal"});
+block("core:glass",{name:"Стекло",color:"#b8d9df",pattern:"glass",time:.25,transparent:true,occludes:false});
+block("core:workbench",{name:"Верстак",color:"#a57c4e",pattern:"planks",time:.7});
+block("core:bedrock",{name:"Коренная порода",color:"#3f4245",pattern:"stone",time:999});
+block("core:water",{name:"Вода",color:"#569ac0",pattern:"water",solid:false,occludes:false,transparent:true,water:true,time:999});
+
+item("core:coal",{name:"Уголь",color:"#33393b"});
+item("core:stick",{name:"Палка",color:"#b98c55"});
+item("core:wood_pick",{name:"Деревянная кирка",color:"#bd925a",stack:1,tool:"pick",power:2.2});
+item("core:stone_pick",{name:"Каменная кирка",color:"#91999b",stack:1,tool:"pick",power:4.2});
+
+recipe("Доски",{"core:log":1},{"core:planks":4});
+recipe("Палки",{"core:planks":2},{"core:stick":4});
+recipe("Верстак",{"core:planks":4},{"core:workbench":1});
+recipe("Деревянная кирка",{"core:planks":3,"core:stick":2},{"core:wood_pick":1});
+recipe("Каменная кирка",{"core:cobble":3,"core:stick":2},{"core:stone_pick":1});
+recipe("Стекло",{"core:sand":3,"core:coal":1},{"core:glass":3});
+
+const CREATIVE=[
+ "core:grass","core:dirt","core:stone","core:log","core:leaves",
+ "core:sand","core:planks","core:brick","core:lamp","core:cobble",
+ "core:glass","core:workbench"
+];
+
+/* ---------------- State ---------------- */
+
+let current=null,host=false,running=false,ready=false,locked=false;
+let radius=3,sensitivity=1,dayTime=.22;
+let selected=0,inventory=Array(36).fill(null);
+let creativeBar=CREATIVE.slice(0,9);
+let origin=new THREE.Vector3();
+
+const player={
+ position:new THREE.Vector3(.5,45,.5),
+ previous:new THREE.Vector3(.5,45,.5),
+ velocity:new THREE.Vector3(),
+ yaw:0,pitch:-.1,height:1.8,radius:.30,
+ grounded:false,flying:false,coyote:0,jumpBuffer:0,
+ gamemode:"creative",sneaking:false,sprinting:false
 };
 
-// Базовые блоки
-const B=(k,n,c,p,x={})=>Registry.registerBlock("core:"+k,{name:n,color:c,pattern:p,...x});
-B("grass","Дёрн","#78b34c","grass",{time:.25});
-B("dirt","Земля","#94623e","dirt",{time:.22});
-B("stone","Камень","#899296","stone",{time:1.3,drop:"core:cobble"});
-B("log","Дуб","#89603b","log",{time:.8});
-B("leaves","Листва","#4d943c","leaves",{time:.12,transparent:true,occludes:false});
-B("sand","Песок","#d9c68b","sand",{time:.20});
-B("planks","Доски","#bd925b","planks",{time:.5});
-B("brick","Кирпич","#b86b55","brick",{time:1.1});
-B("lamp","Светокамень","#f5d581","lamp",{glow:true,time:.38});
-B("cobble","Булыжник","#78858a","stone",{time:1.0});
-B("coal_ore","Угольная руда","#899296","coal",{time:1.6,drop:"core:coal"});
-B("glass","Стекло","#b9d9de","glass",{time:.22,transparent:true,occludes:false});
-B("water","Вода","#589fc1","water",{solid:false,occludes:false,transparent:true});
-B("workbench","Верстак","#a47a4b","bench",{time:.7});
+const profile=JSON.parse(localStorage.getItem(PROFILE)||"{}");
+profile.nickname=profile.nickname||("Player"+Math.floor(Math.random()*900+100));
+profile.skin=profile.skin||"#4e82cf";
+$("nickname").value=profile.nickname;
 
-// Предметы
-Registry.registerItem("core:coal",{name:"Уголь",color:"#34383a"});
-Registry.registerItem("core:stick",{name:"Палка",color:"#b68a53"});
-Registry.registerItem("core:wood_pick",{name:"Деревянная кирка",color:"#bc935b",stack:1,tool:"pick",power:2.5});
-Registry.registerItem("core:stone_pick",{name:"Каменная кирка",color:"#a5afb0",stack:1,tool:"pick",power:4.5});
+function saveProfile(){
+ profile.nickname=$("nickname").value.trim().slice(0,20)||"Player";
+ localStorage.setItem(PROFILE,JSON.stringify(profile));
+}
+const skinColors=["#4e82cf","#58a65c","#d4864c","#b05ac5","#42a8a1","#cf5967"];
+for(const color of skinColors){
+ const e=document.createElement("div");
+ e.className="skin"+(profile.skin===color?" selected":"");
+ e.style.background=color;
+ e.onclick=()=>{
+  profile.skin=color;saveProfile();
+  document.querySelectorAll(".skin").forEach(x=>x.classList.remove("selected"));
+  e.classList.add("selected");
+ };
+ $("skins").append(e);
+}
 
-// Рецепты
-const R=(k,n,i,o,s=null)=>Registry.registerRecipe("core:"+k,{name:n,input:i,output:o,station:s});
-R("planks","Доски",{"core:log":1},{"core:planks":4});
-R("sticks","Палки",{"core:planks":2},{"core:stick":4});
-R("workbench","Верстак",{"core:planks":4},{"core:workbench":1});
-R("wood_pick","Деревянная кирка",{"core:planks":3,"core:stick":2},{"core:wood_pick":1});
-R("stone_pick","Каменная кирка",{"core:cobble":3,"core:stick":2},{"core:stone_pick":1},"workbench");
-R("lamp","Светокамень",{"core:coal":2,"core:cobble":2},{"core:lamp":4},"workbench");
-R("glass","Стекло",{"core:sand":3,"core:coal":1},{"core:glass":3},"workbench");
+/* ---------------- IndexedDB ---------------- */
 
-// Измерения
-Registry.registerDimension("core:overworld",{name:"Основной мир"});
-
-// Команды
-Registry.registerCommand("time",args=>{
- if(args[0]==="day")GameState.dayTime=.25;
- else if(args[0]==="night")GameState.dayTime=.75;
- else throw Error("Usage: /time day|night");
- toast("Время изменено");
-});
-Registry.registerCommand("gamemode",args=>{
- if(!args[0])throw Error("Usage: /gamemode creative|survival");
- GameState.localPlayer.gamemode=args[0];
- toast("Режим: "+args[0]);
- refreshInventory();
-});
-Registry.registerCommand("home",()=>{
- GameState.localPlayer.position.set(.5,60,.5);
- GameState.localPlayer.velocity.set(0,0,0);
- toast("Возврат на спавн");
-});
-Registry.registerCommand("give",args=>{
- if(!args[0])throw Error("Usage: /give <item> [count]");
- const count=parseInt(args[1])||1;
- Inventory.give(args[0],count);
- toast(`Выдано: ${args[0]} x${count}`);
-});
-Registry.registerCommand("fly",()=>{
- GameState.localPlayer.flying=!GameState.localPlayer.flying;
- toast(GameState.localPlayer.flying?"Полёт включён":"Полёт выключен");
-});
-
-// ========== GAME STATE ==========
-const GameState={
- ready:false,
- running:false,
- locked:false,
- host:false,
- 
- worldID:null,
- dimension:"core:overworld",
- dayTime:.22,
- seed:1,
- 
- localPlayer:{
-  position:new THREE.Vector3(.5,60,.5),
-  previous:new THREE.Vector3(.5,60,.5),
-  velocity:new THREE.Vector3(),
-  yaw:0,pitch:-.1,bodyYaw:0,headYaw:0,headPitch:0,
-  height:1.8,radius:.30,
-  grounded:false,flying:false,coyote:0,jumpBuffer:0,
-  gamemode:"creative",
-  permissions:new Set(Registry.permissions),
-  profile:{nickname:"Player",skin:"#4e82cf"}
- },
- 
- remotePlayers:new Map(),
- 
- settings:{
-  radius:3,
-  sensitivity:1,
-  quality:"medium",
-  headBob:true
- }
-};
-
-// ========== PROFILE ==========
-const Profile={
- load(){
-  const data=JSON.parse(localStorage.getItem(PROFILE_KEY)||"{}");
-  GameState.localPlayer.profile.nickname=data.nickname||"Player";
-  GameState.localPlayer.profile.skin=data.skin||"#4e82cf";
-  $("profileName").value=GameState.localPlayer.profile.nickname;
- },
- 
- save(){
-  const p=GameState.localPlayer.profile;
-  localStorage.setItem(PROFILE_KEY,JSON.stringify({nickname:p.nickname,skin:p.skin}));
- },
- 
- update(){
-  GameState.localPlayer.profile.nickname=$("profileName").value.trim()||"Player";
-  this.save();
- }
-};
-
-// ========== INDEXEDDB ==========
-let dbPromise=null;
+let dbPromise;
 function db(){
  if(dbPromise)return dbPromise;
  dbPromise=new Promise((resolve,reject)=>{
-  const req=indexedDB.open("BlockWorldNextV3",1);
-  req.onupgradeneeded=()=>{
-   const d=req.result;
-   if(!d.objectStoreNames.contains("worlds"))
-    d.createObjectStore("worlds",{keyPath:"id"});
-   if(!d.objectStoreNames.contains("edits")){
-    const s=d.createObjectStore("edits",{keyPath:"key"});
-    s.createIndex("worldDim","worldDim");
+  const r=indexedDB.open("BlockWorldNext4",1);
+  r.onupgradeneeded=()=>{
+   const d=r.result;
+   if(!d.objectStoreNames.contains("world"))d.createObjectStore("world",{keyPath:"id"});
+   if(!d.objectStoreNames.contains("edit")){
+    const s=d.createObjectStore("edit",{keyPath:"key"});
+    s.createIndex("chunk","chunk");
    }
   };
-  req.onsuccess=()=>resolve(req.result);
-  req.onerror=()=>reject(req.error);
+  r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
  });
  return dbPromise;
 }
-
-async function idbGetWorld(id){
- const d=await db();
+async function getWorld(id){
+ const d=await db();return new Promise((res,rej)=>{
+  const r=d.transaction("world").objectStore("world").get(id);
+  r.onsuccess=()=>res(r.result||null);r.onerror=()=>rej(r.error);
+ });
+}
+async function putWorld(w){
+ const d=await db();return new Promise((res,rej)=>{
+  const r=d.transaction("world","readwrite").objectStore("world").put(w);
+  r.onsuccess=()=>res();r.onerror=()=>rej(r.error);
+ });
+}
+async function loadEdits(world,cx,cz){
+ const d=await db(),key=world+"|"+cx+","+cz;
  return new Promise((res,rej)=>{
-  const r=d.transaction("worlds").objectStore("worlds").get(id);
-  r.onsuccess=()=>res(r.result||null);
-  r.onerror=()=>rej(r.error);
+  const r=d.transaction("edit").objectStore("edit").index("chunk").getAll(IDBKeyRange.only(key));
+  r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error);
  });
 }
-
-async function idbPutWorld(w){
+async function putEdit(x,y,z,id){
+ if(!host||!current)return;
+ const cx=Math.floor(x/S),cz=Math.floor(z/S),lx=((x%S)+S)%S,lz=((z%S)+S)%S;
+ const i=lx+S*(lz+S*y),chunk=current.id+"|"+cx+","+cz;
  const d=await db();
- return new Promise((res,rej)=>{
-  const r=d.transaction("worlds","readwrite").objectStore("worlds").put(w);
-  r.onsuccess=()=>res();
-  r.onerror=()=>rej(r.error);
+ d.transaction("edit","readwrite").objectStore("edit").put({
+  key:chunk+"|"+i,chunk,i,id
  });
 }
 
-async function idbLoadEdits(world,dim,cx,cz){
- const d=await db(),key=world+"|"+dim+"|"+cx+","+cz;
- return new Promise((res,rej)=>{
-  const tx=d.transaction("edits"),idx=tx.objectStore("edits").index("worldDim");
-  const r=idx.getAll(IDBKeyRange.only(key));
-  r.onsuccess=()=>res(r.result||[]);
-  r.onerror=()=>rej(r.error);
- });
-}
+/* ---------------- World menu ---------------- */
 
-async function idbPutEdit(world,dim,x,y,z,id){
- const cx=Math.floor(x/S),cz=Math.floor(z/S);
- const lx=((x%S)+S)%S,lz=((z%S)+S)%S;
- const i=lx+S*(lz+S*y);
- const record={
-  key:world+"|"+dim+"|"+cx+","+cz+"|"+i,
-  worldDim:world+"|"+dim+"|"+cx+","+cz,
-  i,id
- };
- const d=await db();
- d.transaction("edits","readwrite").objectStore("edits").put(record);
-}
-
-async function idbDeleteWorld(id){
- const d=await db();
- await new Promise((res,rej)=>{
-  const r=d.transaction("worlds","readwrite").objectStore("worlds").delete(id);
-  r.onsuccess=()=>res();
-  r.onerror=()=>rej(r.error);
- });
- await new Promise((res,rej)=>{
-  const tx=d.transaction("edits","readwrite"),s=tx.objectStore("edits");
-  const r=s.openCursor();
-  r.onsuccess=()=>{
-   const c=r.result;
-   if(!c)return;
-   if(c.value.key.startsWith(id+"|"))c.delete();
-   c.continue();
+let worldMeta=JSON.parse(localStorage.getItem(META)||"{}");
+function saveMeta(){localStorage.setItem(META,JSON.stringify(worldMeta))}
+function renderWorlds(){
+ $("worlds").innerHTML="";
+ const a=Object.values(worldMeta).sort((x,y)=>y.created-x.created);
+ if(!a.length){$("worlds").innerHTML='<div class="small">Миров пока нет.</div>';return}
+ for(const w of a){
+  const e=document.createElement("div");e.className="world";
+  e.innerHTML=`<div class="worldInfo"><b>${esc(w.name)}</b>
+   <span class="small">seed ${esc(String(w.seed))} · ${w.mode}</span></div>
+   <button class="primary">Играть</button><button class="danger">×</button>`;
+  e.children[1].onclick=()=>startLocal(w.id);
+  e.children[2].onclick=async()=>{
+   if(!confirm("Удалить мир из списка?"))return;
+   delete worldMeta[w.id];saveMeta();renderWorlds();
   };
-  tx.oncomplete=res;
-  tx.onerror=()=>rej(tx.error);
- });
-}
-
-// ========== WORLD LIST ==========
-async function loadWorldList(){
- const meta=JSON.parse(localStorage.getItem(META_KEY)||"{}");
- const list=Object.values(meta.worlds||{}).sort((a,b)=>b.created-a.created);
- 
- const el=$("worldList");
- el.innerHTML="";
- if(!list.length){
-  el.innerHTML='<p style="color:var(--muted);padding:20px;text-align:center">Миров пока нет</p>';
-  return;
- }
- 
- for(const w of list){
-  const div=document.createElement("div");
-  div.className="world-item";
-  div.innerHTML=`
-   <div class="world-info">
-    <b>${escapeHTML(w.name)}</b>
-    <small>seed ${w.seed} · ${w.gamemode}</small>
-   </div>
-   <button class="primary">Играть</button>
-   <button class="danger" style="padding:10px 14px">×</button>
-  `;
-  div.children[1].onclick=()=>startLocal(w.id);
-  div.children[2].onclick=async()=>{
-   if(!confirm("Удалить мир?"))return;
-   await idbDeleteWorld(w.id);
-   delete meta.worlds[w.id];
-   localStorage.setItem(META_KEY,JSON.stringify(meta));
-   loadWorldList();
-  };
-  el.append(div);
+  $("worlds").append(e);
  }
 }
+renderWorlds();
 
-function escapeHTML(s){
- const d=document.createElement("div");
- d.textContent=s;
- return d.innerHTML;
-}
-
-// ========== WORLD MANAGEMENT ==========
-$("createWorld").onclick=async()=>{
- const name=$("newWorldName").value.trim()||"Новый мир";
- const mode=$("newWorldMode").value;
+$("create").onclick=async()=>{
+ saveProfile();
  const id=Date.now().toString(36)+Math.random().toString(36).slice(2,7);
- const seed=Math.floor(Math.random()*1e9);
- 
- const world={
-  id,name,seed,gamemode:mode,created:Date.now(),
-  dimension:"core:overworld",
-  position:[.5,60,.5],yaw:0,pitch:-.1,dayTime:.22
+ const w={
+  id,name:$("worldName").value.trim()||"Мир",
+  seed:$("seed").value||String(Math.floor(Math.random()*1e9)),
+  mode:$("newMode").value,created:Date.now(),position:[.5,45,.5],
+  yaw:0,pitch:-.1,time:.22,inventory:null
  };
- 
- const meta=JSON.parse(localStorage.getItem(META_KEY)||"{}");
- if(!meta.worlds)meta.worlds={};
- meta.worlds[id]={id,name,seed,gamemode:mode,created:world.created};
- localStorage.setItem(META_KEY,JSON.stringify(meta));
- 
- await idbPutWorld(world);
- await startLocal(id);
+ worldMeta[id]={id:w.id,name:w.name,seed:w.seed,mode:w.mode,created:w.created};
+ saveMeta();await putWorld(w);startLocal(id);
 };
-
 async function startLocal(id){
- const world=await idbGetWorld(id);
- if(!world)return alert("Мир не найден");
- 
- GameState.worldID=id;
- GameState.host=true;
- GameState.seed=world.seed;
- GameState.dimension=world.dimension||"core:overworld";
- GameState.dayTime=world.dayTime||.22;
- GameState.localPlayer.position.fromArray(world.position||[.5,60,.5]);
- GameState.localPlayer.yaw=world.yaw||0;
- GameState.localPlayer.pitch=world.pitch||-.1;
- GameState.localPlayer.gamemode=world.gamemode||"creative";
- GameState.localPlayer.flying=GameState.localPlayer.gamemode==="creative";
- 
- await startGame();
- Network.startHost();
+ saveProfile();
+ const w=await getWorld(id);if(!w)return alert("Сохранение не найдено");
+ current=w;host=true;
+ player.gamemode=w.mode||"creative";
+ await bootGame(w.seed);
+ startHost();
 }
-
-$("joinServer").onclick=async()=>{
- const serverID=$("serverID").value.trim();
- if(!serverID)return;
- 
- GameState.worldID="guest";
- GameState.host=false;
- GameState.seed=1;
- 
- await startGame();
- Network.connect(serverID);
+$("join").onclick=async()=>{
+ saveProfile();
+ const id=$("joinId").value.trim();if(!id)return;
+ current={id:"guest",name:"Server",seed:null,mode:"survival"};
+ host=false;
+ $("main").classList.add("hidden");
+ $("hud").classList.remove("hidden");
+ $("pause").classList.remove("hidden");
+ $("status").textContent="Соединение с сервером…";
+ initThreeOnce();
+ connectHost(id);
 };
 
-async function leaveWorld(){
- await saveWorld();
- location.reload();
+/* ---------------- Three ---------------- */
+
+let scene,camera,renderer,texture,materials,sun,hemi;
+let handScene,handCamera,handGroup,heldObject=null;
+let outline;
+const lamps=[];
+
+function atlas(){
+ const c=document.createElement("canvas");c.width=c.height=256;
+ const g=c.getContext("2d");
+ function rnd(s){return()=>{s=(Math.imul(s,1664525)+1013904223)|0;return(s>>>0)/4294967296}}
+ function tile(index,base,p){
+  const ox=index%16*16,oy=Math.floor(index/16)*16;
+  const C=new THREE.Color(base);C.convertLinearToSRGB();
+  const sr=C.r*255,sg=C.g*255,sb=C.b*255,R=rnd(index*9137+71);
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){
+   let r=sr,gg=sg,b=sb,v=(R()-.5)*28;
+   if(p==="grass"){
+    if(y<3+(x*7)%3){r=104;gg=164;b=67}else{r=139;gg=94;b=59}
+   }
+   if(p==="stone"&&R()<.12)v-=25;
+   if(p==="log")v+=x%5<2?-20:8;
+   if(p==="leaves")v+=R()<.28?-35:8;
+   if(p==="sand"&&R()<.15)v+=20;
+   if(p==="planks"&&(y%4===0||(x+(Math.floor(y/4)%2)*8)%16===0))v-=35;
+   if(p==="brick"&&(y%5===0||(x+(Math.floor(y/5)%2)*4)%8===0)){
+    r=185;gg=173;b=150;v=-8
+   }
+   if(p==="lamp"){if(R()<.32){r=255;gg=235;b=158;v=12}else if((x+3*y)%9===0)v-=40}
+   if(p==="coal"&&((x*7+y*13)%29)<6){r=45;gg=49;b=50;v=0}
+   if(p==="glass"){
+    r=180;gg=217;b=224;v=(x===0||y===0||x===15||y===15||x-y===3)?32:-5;
+   }
+   if(p==="water"){r=71;gg=145;b=190;v=Math.sin((x+y)*.8)*10}
+   g.fillStyle=`rgb(${clamp(r+v,0,255)|0},${clamp(gg+v,0,255)|0},${clamp(b+v,0,255)|0})`;
+   g.fillRect(ox+x,oy+y,1,1);
+  }
+ }
+ Blocks.slice(1).forEach(d=>{
+  d.tiles=[];
+  for(let f=0;f<3;f++){
+   const t=(d.id-1)*3+f;d.tiles.push(t);
+   tile(t,d.color,d.pattern);
+  }
+ });
+ const tex=new THREE.CanvasTexture(c);
+ tex.magFilter=THREE.NearestFilter;tex.minFilter=THREE.NearestFilter;
+ tex.generateMipmaps=false;tex.colorSpace=THREE.SRGBColorSpace;
+ texture=tex;
+
+ for(const [key,it] of Items){
+  if(!it.block)continue;
+  const d=Blocks[it.block],t=d.tiles[1]||d.tiles[0];
+  const ic=document.createElement("canvas");ic.width=ic.height=16;
+  ic.getContext("2d").drawImage(c,t%16*16,Math.floor(t/16)*16,16,16,0,0,16,16);
+  it.icon=ic.toDataURL();
+ }
+}
+function cubeGeometry(id){
+ const geo=new THREE.BoxGeometry(1,1,1),uv=geo.getAttribute("uv"),d=Blocks[id];
+ for(let f=0;f<6;f++){
+  const t=d.tiles[f===2?1:f===3?2:0],ox=t%16*16,oy=Math.floor(t/16)*16;
+  for(let i=0;i<4;i++){
+   const n=f*4+i,u=uv.getX(n),v=uv.getY(n);
+   uv.setXY(n,(ox+.1+u*15.8)/256,1-(oy+15.9-v*15.8)/256);
+  }
+ }
+ return geo;
+}
+function initThreeOnce(){
+ if(renderer)return;
+ scene=new THREE.Scene();scene.background=new THREE.Color("#94cfe8");
+ scene.fog=new THREE.Fog("#94cfe8",35,75);
+ camera=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,.05,350);
+ camera.rotation.order="YXZ";
+ renderer=new THREE.WebGLRenderer({canvas:$("game"),antialias:true,powerPreference:"high-performance"});
+ renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.35));
+ renderer.outputColorSpace=THREE.SRGBColorSpace;
+ renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+ atlas();
+ materials=[
+  new THREE.MeshLambertMaterial({map:texture,vertexColors:true,alphaTest:.45}),
+  new THREE.MeshLambertMaterial({map:texture,vertexColors:true,transparent:true,opacity:.86,alphaTest:.18}),
+  new THREE.MeshLambertMaterial({map:texture,vertexColors:true,transparent:true,opacity:.62,depthWrite:false})
+ ];
+ hemi=new THREE.HemisphereLight("#d8efff","#586846",1.1);scene.add(hemi);
+ sun=new THREE.DirectionalLight("#ffedd1",1.2);sun.castShadow=true;
+ sun.shadow.mapSize.set(1024,1024);
+ Object.assign(sun.shadow.camera,{left:-35,right:35,top:35,bottom:-35,near:1,far:150});
+ sun.shadow.normalBias=.03;scene.add(sun,sun.target);
+
+ outline=new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(1.006,1.006,1.006)),
+  new THREE.LineBasicMaterial({color:"#17221b"})
+ );
+ outline.visible=false;scene.add(outline);
+
+ for(let i=0;i<6;i++){
+  const l=new THREE.PointLight("#ffd685",0,11,1.8);
+  scene.add(l);lamps.push(l);
+ }
+
+ handScene=new THREE.Scene();
+ handCamera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.01,10);
+ handScene.add(new THREE.HemisphereLight("#fff","#687568",2));
+ const hl=new THREE.DirectionalLight("#ffe8c6",1.6);hl.position.set(-2,3,4);handScene.add(hl);
+ handGroup=new THREE.Group();handScene.add(handGroup);
+ const arm=new THREE.Mesh(new THREE.BoxGeometry(.17,.34,.18),new THREE.MeshLambertMaterial({color:"#527c73"}));
+ arm.position.set(.15,-.22,.13);handGroup.add(arm);
 }
 
-// ========== WORKERS ==========
-const workers=[],taskQueue=[],uploads=[];
-let taskID=0,epoch=0;
+/* ---------------- Workers/chunks ---------------- */
+
+let epoch=0,taskID=0;
+const workers=[],queue=[],uploads=[],chunks=new Map();
+const ck=(x,z)=>x+","+z,mod16=x=>((x%16)+16)%16,bi=(x,y,z)=>x+S*(z+S*y);
 
 async function initWorkers(){
- const src=$("worker").textContent;
- const url=URL.createObjectURL(new Blob([src],{type:"text/javascript"}));
- const count=Math.max(1,Math.min(3,(navigator.hardwareConcurrency||4)-2));
- 
- const defs=Registry.blocks.map(b=>({
-  id:b.id,solid:b.solid,occludes:b.occludes,transparent:b.transparent,
-  glow:b.glow,tiles:b.tiles||[]
+ const src=$("worker").textContent,url=URL.createObjectURL(new Blob([src],{type:"text/javascript"}));
+ const defs=Blocks.map(d=>({
+  occludes:!!d.occludes,transparent:!!d.transparent,water:!!d.water,
+  glow:!!d.glow,tiles:d.tiles||[0,0,0]
  }));
- 
+ const count=Math.max(1,Math.min(3,(navigator.hardwareConcurrency||4)-2));
  for(let i=0;i<count;i++){
-  const w=new Worker(url);
-  const slot={w,job:null};
-  workers.push(slot);
-  
+  const w=new Worker(url),slot={w,job:null};workers.push(slot);
   w.onmessage=e=>{
-   const job=slot.job;
-   if(!job)return;
-   slot.job=null;
-   if(e.data.error)job.reject(Error(e.data.error));
-   else job.resolve(e.data);
-   pump();
+   const j=slot.job;if(!j)return;slot.job=null;
+   e.data.error?j.reject(Error(e.data.error)):j.resolve(e.data);pump();
   };
-  
-  await new Promise((res,rej)=>{
-   const id=++taskID;
-   slot.job={id,resolve:res,reject:rej,valid:()=>true};
-   w.postMessage({type:"init",id,seed:GameState.seed,defs,ids:Registry.ids,ores:[]});
+  await new Promise((resolve,reject)=>{
+   slot.job={resolve,reject,valid:()=>true};
+   w.postMessage({type:"init",id:++taskID,seed:hashSeed(current.seed),defs,ids:BlockID});
   });
  }
 }
-
 function task(type,data,transfer=[],valid=()=>true,priority=0){
- return new Promise((res,rej)=>{
-  taskQueue.push({id:++taskID,type,data,transfer,valid,priority,resolve:res,reject:rej});
-  pump();
+ return new Promise((resolve,reject)=>{
+  queue.push({id:++taskID,type,data,transfer,valid,priority,resolve,reject});pump();
  });
 }
-
 function pump(){
- taskQueue.sort((a,b)=>a.priority-b.priority);
+ queue.sort((a,b)=>a.priority-b.priority);
  for(const s of workers){
   if(s.job)continue;
-  let job;
-  while(taskQueue.length){
-   const j=taskQueue.shift();
-   if(j.valid()){job=j;break}
-   else j.resolve(null);
+  let j;
+  while(queue.length){
+   const q=queue.shift();if(q.valid()){j=q;break}else q.resolve(null);
   }
-  if(!job)continue;
-  s.job=job;
-  s.w.postMessage({id:job.id,type:job.type,...job.data},job.transfer);
+  if(!j)continue;s.job=j;s.w.postMessage({id:j.id,type:j.type,...j.data},j.transfer);
  }
 }
-
-// ========== CHUNKS ==========
-const chunks=new Map();
-const ck=(x,z)=>x+","+z;
-const mod16=x=>((x%16)+16)%16;
-const blockIndex=(x,y,z)=>x+S*(z+S*y);
-
-function alive(c){
- return c.epoch===epoch&&chunks.get(ck(c.cx,c.cz))===c;
-}
-
-function chunkAt(x,z){
- return chunks.get(ck(Math.floor(x/S),Math.floor(z/S)));
-}
-
+function alive(c){return c.epoch===epoch&&chunks.get(ck(c.cx,c.cz))===c}
+function chunkAt(x,z){return chunks.get(ck(Math.floor(x/S),Math.floor(z/S)))}
 function getBlock(x,y,z){
  x=Math.floor(x);y=Math.floor(y);z=Math.floor(z);
- if(y<0)return 0;
- if(y>=H)return 0;
- const c=chunkAt(x,z);
- if(!c?.blocks)return 0;
- return c.blocks[blockIndex(mod16(x),y,mod16(z))];
+ if(y<0)return BlockID["core:bedrock"];if(y>=H)return 0;
+ const c=chunkAt(x,z);if(!c?.blocks)return 0;
+ return c.blocks[bi(mod16(x),y,mod16(z))];
 }
-
 function solid(x,y,z){
- if(y<0)return true;
- if(y>=H)return false;
- const c=chunkAt(x,z);
- if(!c?.blocks)return true;
- const id=getBlock(x,y,z);
- return Registry.blocks[id]?.solid!==false;
+ if(y<0)return true;if(y>=H)return false;
+ const c=chunkAt(x,z);if(!c?.blocks)return true;
+ const id=getBlock(x,y,z);return id!==0&&Blocks[id]?.solid===true;
 }
-
-function mark(c){
- if(c?.blocks){c.rev++;c.dirty=true}
-}
-
+function mark(c){if(c?.blocks){c.rev++;c.dirty=true}}
 function markAround(cx,cz){
- for(let z=-1;z<=1;z++)for(let x=-1;x<=1;x++)
-  mark(chunks.get(ck(cx+x,cz+z)));
+ for(let z=-1;z<=1;z++)for(let x=-1;x<=1;x++)mark(chunks.get(ck(cx+x,cz+z)));
 }
-
 function disposeChunk(c){
- for(const m of c.meshes){
-  Render.scene.remove(m);
-  m.geometry.dispose();
- }
+ for(const m of c.meshes){scene.remove(m);m.geometry.dispose()}
  c.meshes=[];
 }
-
 async function loadChunk(c){
  c.loading=true;
  try{
-  const dim=Registry.dimensions.get(GameState.dimension);
-  const result=await task("generate",{cx:c.cx,cz:c.cz,dimension:dim},[],()=>alive(c),c.distance);
-  if(!result||!alive(c))return;
-  
-  c.blocks=result.blocks;
-  
-  if(GameState.host&&GameState.worldID!=="guest"){
-   const edits=await idbLoadEdits(GameState.worldID,GameState.dimension,c.cx,c.cz);
+  const r=await task("generate",{cx:c.cx,cz:c.cz},[],()=>alive(c),c.distance);
+  if(!r||!alive(c))return;
+  c.blocks=r.blocks;
+  if(host&&current.id!=="guest"){
+   const edits=await loadEdits(current.id,c.cx,c.cz);
    if(!alive(c))return;
    for(const e of edits)c.blocks[e.i]=e.id;
   }
-  
-  c.loading=false;
-  markAround(c.cx,c.cz);
- }catch(e){
-  console.error(e);
-  c.loading=false;
- }
+  c.loading=false;markAround(c.cx,c.cz);
+ }catch(e){console.error(e);c.loading=false}
 }
-
+function ensureChunk(cx,cz){
+ const k=ck(cx,cz);
+ if(!chunks.has(k))chunks.set(k,{cx,cz,epoch,blocks:null,meshes:[],loading:false,
+  dirty:false,meshing:false,rev:0,distance:0});
+ return chunks.get(k);
+}
 function stream(){
- if(!GameState.running)return;
- const p=GameState.localPlayer.position;
- const cx=Math.floor(p.x/S),cz=Math.floor(p.z/S);
- const r=GameState.settings.radius;
- 
- for(let z=-r;z<=r;z++)for(let x=-r;x<=r;x++){
-  if(x*x+z*z>(r+.5)**2)continue;
-  const key=ck(cx+x,cz+z);
-  if(!chunks.has(key))
-   chunks.set(key,{cx:cx+x,cz:cz+z,epoch,blocks:null,meshes:[],
-    loading:false,dirty:false,meshing:false,rev:0,distance:0});
+ if(!running)return;
+ const cx=Math.floor(player.position.x/S),cz=Math.floor(player.position.z/S);
+ for(let z=-radius;z<=radius;z++)for(let x=-radius;x<=radius;x++){
+  if(x*x+z*z>(radius+.5)**2)continue;ensureChunk(cx+x,cz+z);
  }
- 
  const fresh=[];
- for(const [key,c] of chunks){
+ for(const [k,c] of chunks){
   c.distance=Math.hypot(c.cx-cx,c.cz-cz);
-  if(c.distance>r+1.5){
-   disposeChunk(c);
-   chunks.delete(key);
-   continue;
-  }
-  if(!c.blocks&&!c.loading)fresh.push(c);
+  if(c.distance>radius+1.6){disposeChunk(c);chunks.delete(k);continue}
+  if(!c.blocks&&!c.loading&&host)fresh.push(c);
  }
- 
  fresh.sort((a,b)=>a.distance-b.distance);
  const loading=[...chunks.values()].filter(c=>c.loading).length;
- for(const c of fresh.slice(0,Math.max(0,6-loading)))loadChunk(c);
+ for(const c of fresh.slice(0,Math.max(0,7-loading)))loadChunk(c);
 }
-
 function makePad(c){
  const a=new Uint16Array(18*18*(H+2));
  for(let z=-1;z<=16;z++)for(let x=-1;x<=16;x++){
   const wx=c.cx*S+x,wz=c.cz*S+z,n=chunkAt(wx,wz);
   if(!n?.blocks)continue;
   const lx=mod16(wx),lz=mod16(wz);
-  for(let y=0;y<H;y++)a[x+1+18*(z+1+18*(y+1))]=n.blocks[blockIndex(lx,y,lz)];
+  for(let y=0;y<H;y++)a[(x+1)+18*((z+1)+18*(y+1))]=n.blocks[bi(lx,y,lz)];
  }
  return a;
 }
-
 function scheduleMesh(){
- if(taskQueue.length>workers.length*3||uploads.length>5)return;
+ if(queue.length>workers.length*3||uploads.length>5)return;
  const c=[...chunks.values()].filter(c=>c.blocks&&c.dirty&&!c.meshing)
   .sort((a,b)=>a.distance-b.distance)[0];
  if(!c)return;
- 
  c.dirty=false;c.meshing=true;
  const rev=c.rev,pad=makePad(c);
- task("mesh",{pad},[pad.buffer],()=>alive(c),c.distance-2)
-  .then(r=>{
-   if(!r||!alive(c)){c.meshing=false;return}
-   uploads.push({c,rev,groups:r.groups});
-  })
-  .catch(console.error);
+ task("mesh",{pad},[pad.buffer],()=>alive(c),c.distance-2).then(r=>{
+  if(!r||!alive(c)){c.meshing=false;return}
+  uploads.push({c,rev,groups:r.groups});
+ }).catch(console.error);
 }
-
 function uploadMeshes(){
- const start=performance.now();
- let done=0;
- 
- while(uploads.length&&done<2&&performance.now()-start<3){
-  const {c,rev,groups}=uploads.shift();
-  c.meshing=false;
-  if(!alive(c))continue;
-  if(c.rev!==rev){c.dirty=true;continue}
-  
+ const start=performance.now();let done=0;
+ while(uploads.length&&done<2&&performance.now()-start<3.5){
+  const {c,rev,groups}=uploads.shift();c.meshing=false;
+  if(!alive(c))continue;if(c.rev!==rev){c.dirty=true;continue}
   disposeChunk(c);
-  
   groups.forEach((g,i)=>{
    if(!g.i.length)return;
    const geo=new THREE.BufferGeometry();
@@ -1113,1031 +913,810 @@ function uploadMeshes(){
    geo.setAttribute("normal",new THREE.BufferAttribute(g.n,3));
    geo.setAttribute("uv",new THREE.BufferAttribute(g.u,2));
    geo.setAttribute("color",new THREE.BufferAttribute(g.c,3));
-   geo.setIndex(new THREE.BufferAttribute(g.i,1));
-   geo.computeBoundingSphere();
-   
-   const m=new THREE.Mesh(geo,Render.materials[i]);
-   m.position.set(c.cx*S-Render.origin.x,0,c.cz*S-Render.origin.z);
-   m.castShadow=i===0;
-   m.receiveShadow=i!==1;
-   m.renderOrder=i===2?1:0;
-   c.meshes.push(m);
-   Render.scene.add(m);
-  });
-  
-  done++;
+   geo.setIndex(new THREE.BufferAttribute(g.i,1));geo.computeBoundingSphere();
+   const m=new THREE.Mesh(geo,materials[i]);
+   m.position.set(c.cx*S-origin.x,0,c.cz*S-origin.z);
+   m.castShadow=i===0&&c.distance<3;m.receiveShadow=i!==2;m.renderOrder=i;
+   c.meshes.push(m);scene.add(m);
+  });done++;
+ }
+}
+async function changeBlock(x,y,z,id,broadcast=true,save=true){
+ x=Math.floor(x);y=Math.floor(y);z=Math.floor(z);
+ if(y<1||y>=H)return false;
+ const c=chunkAt(x,z);if(!c?.blocks)return false;
+ const i=bi(mod16(x),y,mod16(z)),old=c.blocks[i];
+ if(old===id||old===BlockID["core:bedrock"])return false;
+ c.blocks[i]=id;mark(c);
+ if([0,15].includes(mod16(x))||[0,15].includes(mod16(z)))markAround(c.cx,c.cz);
+ if(save&&host)putEdit(x,y,z,id).catch(console.error);
+ if(broadcast&&host)networkSend({t:"block",x,y,z,b:id});
+ return old;
+}
+function clearRuntime(){
+ epoch++;
+ for(const c of chunks.values())disposeChunk(c);chunks.clear();
+ queue.length=uploads.length=0;
+ for(const s of workers)s.w.terminate();workers.length=0;
+}
+
+/* ---------------- Inventory ---------------- */
+
+function insert(id,count){
+ const max=Items.get(id)?.stack||64;
+ for(const s of inventory)if(s&&s.id===id&&s.count<max){
+  const n=Math.min(count,max-s.count);s.count+=n;count-=n;if(!count)return 0;
+ }
+ for(let i=0;i<inventory.length;i++)if(!inventory[i]){
+  const n=Math.min(count,max);inventory[i]={id,count:n};count-=n;if(!count)return 0;
+ }
+ return count;
+}
+function held(){
+ if(player.gamemode==="creative")return {id:creativeBar[selected],count:Infinity};
+ return inventory[selected];
+}
+function select(i){selected=(i+9)%9;refreshHotbar();updateHeld()}
+function icon(key){
+ const e=document.createElement("div"),it=Items.get(key);
+ e.className="icon";
+ if(it?.icon)e.style.backgroundImage=`url("${it.icon}")`;else e.style.background=it?.color||"#888";
+ return e;
+}
+function refreshHotbar(){
+ const h=$("hotbar");h.innerHTML="";
+ for(let i=0;i<9;i++){
+  const s=player.gamemode==="creative"?{id:creativeBar[i],count:Infinity}:inventory[i];
+  const e=document.createElement("div");e.className="slot"+(i===selected?" active":"");
+  const n=document.createElement("span");n.className="num";n.textContent=i+1;e.append(n);
+  if(s){
+   e.append(icon(s.id));const c=document.createElement("span");c.className="count";
+   c.textContent=s.count===Infinity?"∞":s.count>1?s.count:"";e.append(c);
+  }
+  e.onclick=()=>select(i);h.append(e);
+ }
+ updateHeld();
+}
+function updateHeld(){
+ if(!handGroup)return;
+ if(heldObject){
+  handGroup.remove(heldObject);
+  heldObject.geometry?.dispose();
+  if(heldObject.userData.owned)heldObject.material?.dispose();
+  heldObject=null;
+ }
+ const h=held();if(!h)return;
+ const it=Items.get(h.id);if(!it)return;
+ if(it.block){
+  heldObject=new THREE.Mesh(cubeGeometry(it.block),
+   new THREE.MeshLambertMaterial({map:texture,transparent:Blocks[it.block].transparent,opacity:Blocks[it.block].transparent?.78:1}));
+  heldObject.userData.owned=true;heldObject.scale.setScalar(.28);
+  heldObject.rotation.set(.1,-.42,-.1);
+ }else{
+  heldObject=new THREE.Mesh(new THREE.BoxGeometry(.08,.42,.08),
+   new THREE.MeshLambertMaterial({color:it.color}));
+  heldObject.userData.owned=true;heldObject.rotation.z=-.35;
+ }
+ handGroup.add(heldObject);
+}
+function canCraft(r){
+ const counts={};for(const s of inventory)if(s)counts[s.id]=(counts[s.id]||0)+s.count;
+ return Object.entries(r.input).every(([id,n])=>(counts[id]||0)>=n);
+}
+function craft(r){
+ if(!canCraft(r))return;
+ for(const [id,n0] of Object.entries(r.input)){
+  let n=n0;
+  for(let i=0;i<inventory.length&&n;i++){
+   const s=inventory[i];if(!s||s.id!==id)continue;
+   const q=Math.min(n,s.count);s.count-=q;n-=q;if(!s.count)inventory[i]=null;
+  }
+ }
+ for(const [id,n] of Object.entries(r.output))insert(id,n);
+ refreshInventory();refreshHotbar();
+}
+function refreshInventory(){
+ $("inventoryMode").textContent=player.gamemode==="creative"?"ТВОРЧЕСТВО":"ВЫЖИВАНИЕ";
+ $("palette").innerHTML="";$("bag").innerHTML="";$("recipes").innerHTML="";
+ if(player.gamemode==="creative"){
+  for(const key of CREATIVE){
+   const b=Blocks[BlockID[key]],e=document.createElement("button");e.className="item";
+   e.append(icon(key));const span=document.createElement("span");span.textContent=b.name;e.append(span);
+   e.onclick=()=>{creativeBar[selected]=key;refreshHotbar();closeInventory()};$("palette").append(e);
+  }
+ }else{
+  for(let i=0;i<36;i++){
+   const e=document.createElement("div");e.className="invslot";
+   const s=inventory[i];if(s){e.append(icon(s.id));const c=document.createElement("span");
+    c.className="count";c.textContent=s.count>1?s.count:"";e.append(c)}
+   $("bag").append(e);
+  }
+  for(const r of Recipes){
+   const e=document.createElement("div");e.className="recipe";
+   const text=document.createElement("span");text.textContent=r.name+" · "+
+    Object.entries(r.input).map(([k,n])=>(Items.get(k)?.name||k)+" ×"+n).join(", ");
+   const b=document.createElement("button");b.textContent="Создать";b.disabled=!canCraft(r);b.onclick=()=>craft(r);
+   e.append(text,b);$("recipes").append(e);
+  }
  }
 }
 
-async function changeBlock(x,y,z,id,save=true,broadcast=true){
- x=Math.floor(x);y=Math.floor(y);z=Math.floor(z);
- if(y<0||y>=H)return false;
- 
- const c=chunkAt(x,z);
- if(!c?.blocks)return false;
- 
- const i=blockIndex(mod16(x),y,mod16(z));
- const old=c.blocks[i];
- if(old===id)return false;
- 
- c.blocks[i]=id;
- mark(c);
- 
- if(mod16(x)===0||mod16(x)===15||mod16(z)===0||mod16(z)===15)
-  markAround(c.cx,c.cz);
- 
- if(save&&GameState.host)
-  idbPutEdit(GameState.worldID,GameState.dimension,x,y,z,id).catch(console.error);
- 
- if(broadcast)Network.send({t:"block",x,y,z,id});
- 
- return old;
-}
+/* ---------------- Physics ---------------- */
 
-// ========== PHYSICS ==========
-function blocked(body){
- const p=body.position,r=body.radius,h=body.height,e=.0001;
- for(let y=Math.floor(p.y+e);y<=Math.floor(p.y+h-e);y++)
-  for(let z=Math.floor(p.z-r+e);z<=Math.floor(p.z+r-e);z++)
-   for(let x=Math.floor(p.x-r+e);x<=Math.floor(p.x+r-e);x++)
+const keys=new Set(),mouse={left:false,right:false};
+let lastW=0,sprintUntil=0,walkPhase=0,walkBob=0;
+function blocked(body,position=body.position){
+ const r=body.radius,h=body.height,e=.00001;
+ for(let y=Math.floor(position.y+e);y<=Math.floor(position.y+h-e);y++)
+  for(let z=Math.floor(position.z-r+e);z<=Math.floor(position.z+r-e);z++)
+   for(let x=Math.floor(position.x-r+e);x<=Math.floor(position.x+r-e);x++)
     if(solid(x,y,z))return true;
  return false;
 }
-
 function moveAxis(body,axis,amount){
  if(!amount)return false;
- const p=body.position,old=p[axis];
- p[axis]+=amount;
+ const old=body.position[axis];body.position[axis]+=amount;
  if(!blocked(body))return false;
- 
  let lo=0,hi=1;
- for(let i=0;i<12;i++){
-  const t=(lo+hi)*.5;
-  p[axis]=old+amount*t;
+ for(let i=0;i<13;i++){
+  const t=(lo+hi)*.5;body.position[axis]=old+amount*t;
   if(blocked(body))hi=t;else lo=t;
  }
- p[axis]=old+amount*lo;
- return true;
+ body.position[axis]=old+amount*lo;return true;
 }
-
-let walkPhase=0,walkBob=0;
-
+function safeSneakMove(axis,amount){
+ if(!player.sneaking||!player.grounded||player.flying)return amount;
+ const old=player.position[axis],step=Math.sign(amount)*.04;
+ let moved=0,left=Math.abs(amount);
+ while(left>.0001){
+  const d=Math.sign(amount)*Math.min(Math.abs(step),left);
+  player.position[axis]=old+moved+d;
+  const test=player.position.clone();test.y-=.08;
+  if(!blocked(player,test)){player.position[axis]=old;break}
+  moved+=d;left-=Math.abs(d);
+ }
+ player.position[axis]=old;return moved;
+}
 function simulate(dt){
- const p=GameState.localPlayer;
- p.previous.copy(p.position);
- 
- const forward=Number(Input.keys.has("KeyW"))-Number(Input.keys.has("KeyS"));
- const strafe=Number(Input.keys.has("KeyD"))-Number(Input.keys.has("KeyA"));
- const sprint=Input.keys.has("ShiftLeft")||Input.keys.has("ShiftRight");
- const crouch=Input.keys.has("ControlLeft")||Input.keys.has("ControlRight");
- 
- const speed=p.flying?(sprint?17:9):crouch?2.4:sprint?7.6:4.6;
- const norm=Math.hypot(forward,strafe)||1;
- 
- const vx=(-Math.sin(p.yaw)*forward+Math.cos(p.yaw)*strafe)/norm*speed;
- const vz=(-Math.cos(p.yaw)*forward-Math.sin(p.yaw)*strafe)/norm*speed;
- 
- const blend=1-Math.exp(-(p.grounded?18:5)*dt);
- p.velocity.x=mix(p.velocity.x,vx,blend);
- p.velocity.z=mix(p.velocity.z,vz,blend);
- 
- p.coyote=p.grounded?.10:Math.max(0,p.coyote-dt);
- p.jumpBuffer=Math.max(0,p.jumpBuffer-dt);
- 
- if(p.flying){
-  const up=Number(Input.keys.has("Space"))-Number(crouch);
-  p.velocity.y=mix(p.velocity.y,up*speed,1-Math.exp(-12*dt));
+ player.previous.copy(player.position);
+ const f=Number(keys.has("KeyW"))-Number(keys.has("KeyS"));
+ const s=Number(keys.has("KeyD"))-Number(keys.has("KeyA"));
+ player.sneaking=(keys.has("ShiftLeft")||keys.has("ShiftRight"))&&!player.flying;
+ player.sprinting=(keys.has("ControlLeft")||keys.has("ControlRight")||performance.now()<sprintUntil)&&f>0&&!player.sneaking;
+
+ const speed=player.flying?(player.sprinting?18:9):player.sneaking?1.9:player.sprinting?7.3:4.35;
+ const len=Math.hypot(f,s)||1;
+ const vx=(-Math.sin(player.yaw)*f+Math.cos(player.yaw)*s)/len*speed;
+ const vz=(-Math.cos(player.yaw)*f-Math.sin(player.yaw)*s)/len*speed;
+ const blend=1-Math.exp(-(player.grounded?18:5)*dt);
+ player.velocity.x=mix(player.velocity.x,vx,blend);
+ player.velocity.z=mix(player.velocity.z,vz,blend);
+ player.coyote=player.grounded?.10:Math.max(0,player.coyote-dt);
+ player.jumpBuffer=Math.max(0,player.jumpBuffer-dt);
+
+ if(player.flying){
+  const up=Number(keys.has("Space"))-Number(keys.has("ShiftLeft")||keys.has("ShiftRight"));
+  player.velocity.y=mix(player.velocity.y,up*speed,1-Math.exp(-12*dt));
  }else{
-  if(p.jumpBuffer>0&&p.coyote>0){
-   p.velocity.y=8.1;
-   p.jumpBuffer=p.coyote=0;
-   p.grounded=false;
+  if(player.jumpBuffer>0&&player.coyote>0){
+   player.velocity.y=8.1;player.jumpBuffer=player.coyote=0;player.grounded=false;
   }
-  const dim=Registry.dimensions.get(GameState.dimension);
-  p.velocity.y=Math.max(-32,p.velocity.y-(dim?.gravity||24)*dt);
+  player.velocity.y=Math.max(-32,player.velocity.y-24*dt);
  }
- 
- p.grounded=false;
- 
- const steps=Math.max(1,Math.ceil(p.velocity.length()*dt/.18));
+
+ player.grounded=false;
+ const steps=Math.max(1,Math.ceil(player.velocity.length()*dt/.16));
  for(let i=0;i<steps;i++){
-  if(moveAxis(p,"x",p.velocity.x*dt/steps))p.velocity.x=0;
-  if(moveAxis(p,"z",p.velocity.z*dt/steps))p.velocity.z=0;
-  const vy=p.velocity.y;
-  if(moveAxis(p,"y",vy*dt/steps)){
-   if(vy<0)p.grounded=true;
-   p.velocity.y=0;
+  let dx=player.velocity.x*dt/steps,dz=player.velocity.z*dt/steps;
+  dx=safeSneakMove("x",dx);dz=safeSneakMove("z",dz);
+  if(moveAxis(player,"x",dx))player.velocity.x=0;
+  if(moveAxis(player,"z",dz))player.velocity.z=0;
+  const vy=player.velocity.y;
+  if(moveAxis(player,"y",vy*dt/steps)){
+   if(vy<0)player.grounded=true;player.velocity.y=0;
   }
  }
- 
- if(p.position.y<-10){
-  p.position.set(.5,60,.5);
-  p.velocity.set(0,0,0);
- }
- 
- if(p.grounded&&(forward||strafe))
-  walkPhase+=dt*Math.hypot(p.velocity.x,p.velocity.z)*2.1;
+ if(player.grounded&&(f||s))walkPhase+=dt*Math.hypot(player.velocity.x,player.velocity.z)*2.2;
+ if(player.position.y<-8)home();
 }
 
-// ========== RAYCAST ==========
-const rayDir=new THREE.Vector3();
+/* ---------------- Ray / interaction ---------------- */
 
+const rayDir=new THREE.Vector3();
+let target=null,breaking="",breakTime=0,placeCd=0,handSwing=0;
 function castRay(){
- Render.camera.getWorldDirection(rayDir);
- const o=Render.camera.position.clone().add(Render.origin),d=rayDir;
+ camera.getWorldDirection(rayDir);
+ const o=camera.position.clone().add(origin),d=rayDir;
  let x=Math.floor(o.x),y=Math.floor(o.y),z=Math.floor(o.z);
- 
  const sx=d.x>=0?1:-1,sy=d.y>=0?1:-1,sz=d.z>=0?1:-1;
- const dx=d.x===0?Infinity:Math.abs(1/d.x);
- const dy=d.y===0?Infinity:Math.abs(1/d.y);
- const dz=d.z===0?Infinity:Math.abs(1/d.z);
- 
+ const dx=d.x===0?Infinity:Math.abs(1/d.x),dy=d.y===0?Infinity:Math.abs(1/d.y),dz=d.z===0?Infinity:Math.abs(1/d.z);
  let tx=d.x===0?Infinity:(sx>0?x+1-o.x:o.x-x)*dx;
  let ty=d.y===0?Infinity:(sy>0?y+1-o.y:o.y-y)*dy;
- let tz=d.z===0?Infinity:(sz>0?z+1-o.z:o.z-z)*dz;
- 
- let dist=0,normal=[0,0,0];
- 
+ let tz=d.z===0?Infinity:(sz>0?z+1-o.z:o.z-z)*dz,dist=0,normal=[0,0,0];
  while(dist<=REACH){
+  if(!chunkAt(x,z)?.blocks)return null;
   const id=getBlock(x,y,z);
-  if(id&&Registry.blocks[id]?.solid)
-   return{x,y,z,id,normal,key:x+","+y+","+z};
-  
-  if(tx<ty&&tx<tz){
-   x+=sx;dist=tx;tx+=dx;normal=[-sx,0,0];
-  }else if(ty<tz){
-   y+=sy;dist=ty;ty+=dy;normal=[0,-sy,0];
-  }else{
-   z+=sz;dist=tz;tz+=dz;normal=[0,0,-sz];
-  }
+  if(id&&id!==BlockID["core:water"])return{x,y,z,id,normal,key:x+","+y+","+z};
+  if(tx<ty&&tx<tz){x+=sx;dist=tx;tx+=dx;normal=[-sx,0,0]}
+  else if(ty<tz){y+=sy;dist=ty;ty+=dy;normal=[0,-sy,0]}
+  else{z+=sz;dist=tz;tz+=dz;normal=[0,0,-sz]}
  }
  return null;
 }
-
-function overlapsPlayer(x,y,z){
- const p=GameState.localPlayer.position,r=GameState.localPlayer.radius;
- return x+1>p.x-r&&x<p.x+r&&z+1>p.z-r&&z<p.z+r&&
-  y+1>p.y&&y<p.y+GameState.localPlayer.height;
+function overlaps(x,y,z){
+ const p=player.position,r=player.radius;
+ return x+1>p.x-r+.001&&x<p.x+r-.001&&z+1>p.z-r+.001&&z<p.z+r-.001&&
+  y+1>p.y+.001&&y<p.y+player.height-.001;
 }
-
-// ========== INVENTORY ==========
-const Inventory={
- hotbar:Array(9).fill(null),
- bag:Array(27).fill(null),
- carried:null,
- selected:0,
- 
- init(){
-  if(GameState.localPlayer.gamemode==="creative"){
-   this.hotbar=["grass","dirt","stone","log","leaves","sand","planks","brick","lamp"]
-    .map(k=>"core:"+k).map(id=>({id,count:Infinity}));
-  }else{
-   this.give("core:wood_pick",1);
-   this.give("core:log",4);
-  }
- },
- 
- held(){
-  return GameState.localPlayer.gamemode==="creative"?
-   this.hotbar[this.selected]:this.bag[this.selected];
- },
- 
- give(id,count=1){
-  if(!Registry.items.has(id))return;
-  const stack=Registry.items.get(id).stack;
-  const inv=this.bag;
-  
-  for(const s of inv){
-   if(s&&s.id===id&&s.count<stack){
-    const n=Math.min(count,stack-s.count);
-    s.count+=n;count-=n;
-    if(!count)break;
-   }
-  }
-  
-  for(let i=0;i<inv.length;i++){
-   if(!inv[i]){
-    const n=Math.min(count,stack);
-    inv[i]={id,count:n};
-    count-=n;
-    if(!count)break;
-   }
-  }
-  
-  refreshInventory();
- },
- 
- canCraft(recipe){
-  if(recipe.station==="workbench"&&!this.nearWorkbench())return false;
-  const inv=this.bag.map(s=>s?{...s}:null);
-  
-  for(const [key,need] of Object.entries(recipe.input)){
-   let have=need;
-   for(const s of inv){
-    if(!s)continue;
-    if(s.id===key){
-     const n=Math.min(have,s.count);
-     have-=n;s.count-=n;
-     if(!s.count)s=null;
-     if(!have)break;
-    }
-   }
-   if(have)return false;
-  }
-  
-  for(const [id,n] of Object.entries(recipe.output)){
-   const stack=Registry.items.get(id).stack;
-   let rest=n;
-   for(const s of inv){
-    if(!s||s.id!==id||s.count>=stack)continue;
-    const add=Math.min(rest,stack-s.count);
-    s.count+=add;rest-=add;
-    if(!rest)break;
-   }
-   if(rest&&!inv.some(s=>!s))return false;
-  }
-  
-  return true;
- },
- 
- craft(recipe){
-  if(!this.canCraft(recipe))return;
-  
-  const inv=this.bag.map(s=>s?{...s}:null);
-  
-  for(const [key,need] of Object.entries(recipe.input)){
-   let have=need;
-   for(let i=0;i<inv.length;i++){
-    const s=inv[i];
-    if(!s||s.id!==key)continue;
-    const n=Math.min(have,s.count);
-    have-=n;s.count-=n;
-    if(!s.count)inv[i]=null;
-    if(!have)break;
-   }
-  }
-  
-  for(const [id,n] of Object.entries(recipe.output)){
-   const stack=Registry.items.get(id).stack;
-   let rest=n;
-   
-   for(const s of inv){
-    if(!s||s.id!==id||s.count>=stack)continue;
-    const add=Math.min(rest,stack-s.count);
-    s.count+=add;rest-=add;
-    if(!rest)break;
-   }
-   
-   if(rest){
-    for(let i=0;i<inv.length;i++){
-     if(!inv[i]){
-      const add=Math.min(rest,stack);
-      inv[i]={id,count:add};
-      rest-=add;
-      if(!rest)break;
-     }
-    }
-   }
-  }
-  
-  this.bag=inv;
-  refreshInventory();
- },
- 
- nearWorkbench(){
-  const p=GameState.localPlayer.position;
-  const x=Math.floor(p.x),y=Math.floor(p.y),z=Math.floor(p.z);
-  for(let dy=-1;dy<=2;dy++)
-   for(let dz=-3;dz<=3;dz++)
-    for(let dx=-3;dx<=3;dx++)
-     if(getBlock(x+dx,y+dy,z+dz)===Registry.ids["core:workbench"])return true;
-  return false;
- }
-};
-
-function refreshInventory(){
- const creative=GameState.localPlayer.gamemode==="creative";
- const bar=creative?Inventory.hotbar:Inventory.bag.slice(0,9);
- 
- const el=$("hotbar");
- el.innerHTML="";
- for(let i=0;i<9;i++){
-  const s=bar[i];
-  const slot=document.createElement("div");
-  slot.className="slot"+(i===Inventory.selected?" active":"");
-  
-  if(s){
-   const item=Registry.items.get(s.id);
-   const icon=document.createElement("div");
-   icon.className="block-icon";
-   if(item?.icon)icon.style.backgroundImage=`url(${item.icon})`;
-   else icon.style.background=item?.color||"#888";
-   slot.append(icon);
-   
-   const count=document.createElement("span");
-   count.className="count";
-   count.textContent=s.count===Infinity?"∞":s.count>1?s.count:"";
-   slot.append(count);
-  }
-  
-  const num=document.createElement("span");
-  num.className="num";
-  num.textContent=i+1;
-  slot.append(num);
-  
-  el.append(slot);
- }
- 
- const h=Inventory.held();
- const item=h?Registry.items.get(h.id):null;
- $("selectedName").textContent=item?item.name:"";
- 
- if(!$("inventory").classList.contains("hidden")){
-  $("invMode").textContent=creative?"ТВОРЧЕСТВО":"ВЫЖИВАНИЕ";
-  $("invTitle").textContent=creative?"Блоки и предметы":"Инвентарь и крафт";
-  $("invHint").textContent=creative?"Выберите блок для хотбара":"ЛКМ — взять/положить · ПКМ — половина/один";
-  
-  $("palette").classList.toggle("hidden",!creative);
-  $("survivalView").classList.toggle("hidden",creative);
-  
-  if(creative){
-   const palette=$("palette");
-   palette.innerHTML="";
-   for(const b of Registry.blocks.slice(1)){
-    const btn=document.createElement("button");
-    btn.className="item-btn";
-    const icon=document.createElement("div");
-    icon.className="block-icon";
-    if(b.icon)icon.style.backgroundImage=`url(${b.icon})`;
-    else icon.style.background=b.color;
-    btn.append(icon);
-    
-    const text=document.createElement("div");
-    const name=document.createElement("strong");
-    name.textContent=b.name;
-    text.append(name);
-    btn.append(text);
-    
-    btn.onclick=()=>{
-     Inventory.hotbar[Inventory.selected]={id:b.key,count:Infinity};
-     refreshInventory();
-     closeInventory();
-    };
-    palette.append(btn);
-   }
-  }else{
-   const bag=$("bag");
-   bag.innerHTML="";
-   for(let i=0;i<27;i++){
-    const s=Inventory.bag[i];
-    const slot=document.createElement("div");
-    slot.className="slot";
-    
-    if(s){
-     const item=Registry.items.get(s.id);
-     const icon=document.createElement("div");
-     icon.className="block-icon";
-     if(item?.icon)icon.style.backgroundImage=`url(${item.icon})`;
-     else icon.style.background=item?.color||"#888";
-     slot.append(icon);
-     
-     const count=document.createElement("span");
-     count.className="count";
-     count.textContent=s.count>1?s.count:"";
-     slot.append(count);
-    }
-    
-    bag.append(slot);
-   }
-   
-   const recipes=$("recipes");
-   recipes.innerHTML="";
-   for(const r of Registry.recipes){
-    const div=document.createElement("div");
-    div.className="recipe";
-    
-    const text=document.createElement("div");
-    const name=document.createElement("strong");
-    name.textContent=r.name;
-    const desc=document.createElement("small");
-    desc.textContent=Object.entries(r.input).map(([k,n])=>`${k} ×${n}`).join(", ")+
-     (r.station?" (верстак)":"");
-    text.append(name,desc);
-    
-    const btn=document.createElement("button");
-    btn.className="secondary";
-    btn.textContent="Создать";
-    btn.disabled=!Inventory.canCraft(r);
-    btn.onclick=()=>Inventory.craft(r);
-    
-    div.append(text,btn);
-    recipes.append(div);
-   }
-  }
- }
+function resetBreak(){breaking="";breakTime=0;$("break").style.opacity=0}
+function requestBlockChange(x,y,z,id){
+ if(host)return changeBlock(x,y,z,id);
+ networkSend({t:"action",a:"set",x,y,z,b:id});
+ return Promise.resolve(true);
 }
-
-// ========== INTERACTION ==========
-let target=null,breakingKey="",breakingTime=0,placeCooldown=0;
-
-function resetBreaking(){
- breakingKey="";breakingTime=0;
- $("breakbar").style.opacity=0;
-}
-
 function updateInteraction(dt){
- target=castRay();
- $("target").textContent=target?Registry.blocks[target.id].name:"";
- 
- placeCooldown=Math.max(0,placeCooldown-dt);
- 
- if(Input.mouse.right&&target&&placeCooldown<=0){
-  const n=target.normal;
-  const x=target.x+n[0],y=target.y+n[1],z=target.z+n[2];
-  
-  const h=Inventory.held();
-  const item=h?Registry.items.get(h.id):null;
-  if(item?.block){
-   if(!getBlock(x,y,z)&&!overlapsPlayer(x,y,z)){
-    changeBlock(x,y,z,item.block);
-    if(GameState.localPlayer.gamemode!=="creative"&&!--h.count)
-     Inventory.bag[Inventory.selected]=null;
-    refreshInventory();
+ target=castRay();outline.visible=!!target;
+ $("target").textContent=target?Blocks[target.id].name:"";
+ if(target)outline.position.set(target.x+.5-origin.x,target.y+.5,target.z+.5-origin.z);
+ placeCd=Math.max(0,placeCd-dt);
+
+ if(mouse.right&&target&&placeCd<=0){
+  const h=held(),it=h&&Items.get(h.id),n=target.normal;
+  if(it?.block&&n.some(Boolean)){
+   const x=target.x+n[0],y=target.y+n[1],z=target.z+n[2];
+   if(!getBlock(x,y,z)&&!overlaps(x,y,z)){
+    requestBlockChange(x,y,z,it.block);
+    if(host&&player.gamemode!=="creative"&&h.count!==Infinity){
+     if(!--inventory[selected].count)inventory[selected]=null;refreshHotbar();
+    }
+    handSwing=1;
    }
   }
-  placeCooldown=.20;
+  placeCd=.19;
  }
- 
- if(!Input.mouse.left||!target){
-  resetBreaking();return;
- }
- 
- if(target.key!==breakingKey){
-  breakingKey=target.key;
-  breakingTime=0;
- }
- 
- const b=Registry.blocks[target.id];
- const h=Inventory.held();
- const item=h?Registry.items.get(h.id):null;
- const speed=item?.tool===b.tool?item.power||1:1;
- const duration=GameState.localPlayer.gamemode==="creative"?.12:b.time/speed;
- 
- breakingTime+=dt;
- const p=clamp(breakingTime/duration,0,1);
- 
- $("breakbar").style.opacity=1;
- $("breakfill").style.width=p*100+"%";
- 
+
+ if(!mouse.left||!target){resetBreak();return}
+ if(target.id===BlockID["core:bedrock"]){resetBreak();return}
+ if(target.key!==breaking){breaking=target.key;breakTime=0}
+ const d=Blocks[target.id],h=held(),it=h&&Items.get(h.id);
+ const speed=it?.tool===d.tool?(it.power||1):1;
+ const duration=player.gamemode==="creative"?.11:d.time/speed;
+ breakTime+=dt;
+ const p=clamp(breakTime/duration,0,1);
+ $("break").style.opacity=1;$("breakFill").style.width=p*100+"%";
+ handSwing=Math.max(handSwing,.3+Math.sin(breakTime*25)*.15);
  if(p>=1){
-  changeBlock(target.x,target.y,target.z,0);
-  if(GameState.localPlayer.gamemode!=="creative"){
-   const drop=Registry.blocks[target.id].drop;
-   if(drop)Inventory.give(drop,1);
-  }
-  resetBreaking();
+  const drop=d.drop;
+  requestBlockChange(target.x,target.y,target.z,0);
+  if(host&&player.gamemode!=="creative"&&drop)insert(drop,1);
+  refreshHotbar();resetBreak();
  }
 }
 
-// ========== RENDER ==========
-const Render={
- scene:null,
- camera:null,
- renderer:null,
- materials:[],
- texture:null,
- origin:new THREE.Vector3(),
- 
- init(){
-  this.scene=new THREE.Scene();
-  this.scene.background=new THREE.Color("#95d0e8");
-  this.scene.fog=new THREE.Fog("#95d0e8",40,75);
-  
-  this.camera=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,.05,350);
-  this.camera.rotation.order="YXZ";
-  
-  this.renderer=new THREE.WebGLRenderer({canvas:$("game"),antialias:true});
-  this.renderer.setSize(innerWidth,innerHeight);
-  this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
-  this.renderer.outputColorSpace=THREE.SRGBColorSpace;
-  this.renderer.shadowMap.enabled=true;
-  this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-  
-  this.makeAtlas();
-  
-  this.materials=[
-   new THREE.MeshLambertMaterial({map:this.texture,vertexColors:true,alphaTest:.5}),
-   new THREE.MeshBasicMaterial({map:this.texture,vertexColors:true}),
-   new THREE.MeshLambertMaterial({map:this.texture,vertexColors:true,transparent:true,
-    opacity:.65,depthWrite:false})
-  ];
-  
-  const hemi=new THREE.HemisphereLight("#d9f0ff","#657349",1.1);
-  this.scene.add(hemi);
-  
-  const sun=new THREE.DirectionalLight("#ffeed4",1.2);
-  sun.castShadow=true;
-  sun.shadow.mapSize.set(1024,1024);
-  Object.assign(sun.shadow.camera,{left:-35,right:35,top:35,bottom:-35,near:1,far:150});
-  sun.shadow.bias=-.00015;
-  this.scene.add(sun);
-  this.sun=sun;
- },
- 
- makeAtlas(){
-  const c=document.createElement("canvas");
-  c.width=c.height=256;
-  const g=c.getContext("2d");
-  
-  function rndFact(s){
-   return()=>{
-    s=(Math.imul(s,1664525)+1013904223)|0;
-    return(s>>>0)/4294967296;
-   };
-  }
-  
-  function tile(idx,base,pattern){
-   const ox=idx%16*16,oy=Math.floor(idx/16)*16;
-   const col=new THREE.Color(base);
-   const sr=col.r*255,sg=col.g*255,sb=col.b*255;
-   const rnd=rndFact(idx*9127+77);
-   
-   for(let y=0;y<16;y++)for(let x=0;x<16;x++){
-    let r=sr,gg=sg,b=sb,v=(rnd()-.5)*28;
-    
-    if(pattern==="grass"){
-     if(y<3+(x*7)%3){r=105;gg=164;b=67}
-     else{r=135;gg=91;b=57}
-    }
-    if(pattern==="dirt"){r=137;gg=91;b=58}
-    if(pattern==="stone"&&((x+2*y)%13===0||rnd()<.06))v-=25;
-    if(pattern==="log"){
-     v+=(x%5<2?-16:8);
-     if(y%7===0&&x%3===0)v-=20;
-    }
-    if(pattern==="leaves"){
-     v+=rnd()<.25?-35:9;
-     if((x+y*3)%11===0)v+=25;
-    }
-    if(pattern==="sand"&&rnd()<.14)v+=22;
-    if(pattern==="planks"){
-     if(y%4===0||(x+(Math.floor(y/4)%2)*8)%16===0)v-=35;
-     else if(y%4===1)v+=15;
-    }
-    if(pattern==="brick"){
-     if(y%5===0||(x+(Math.floor(y/5)%2)*4)%8===0){r=185;gg=176;b=157;v=-10}
-    }
-    if(pattern==="lamp"){
-     if(rnd()<.30){r=255;gg=236;b=166;v=15}
-     else if((x+3*y)%9===0){r=145;gg=105;b=52;v=-5}
-    }
-    if(pattern==="coal"&&((x*7+y*13)%29)<6){r=49;gg=54;b=55;v=-5}
-    if(pattern==="water")v=Math.sin((x+y)*.8)*10+rnd()*7;
-    if(pattern==="glass"){
-     v=x===0||y===0||x===15||y===15?22:-8;
-     if((x-y)%5===0)v=35;
-    }
-    if(pattern==="bench"&&(x%5===0||y%5===0))v-=30;
-    
-    g.fillStyle=`rgb(${clamp(r+v,0,255)|0},${clamp(gg+v,0,255)|0},${clamp(b+v,0,255)|0})`;
-    g.fillRect(ox+x,oy+y,1,1);
-   }
-  }
-  
-  for(const d of Registry.blocks.slice(1)){
-   d.tiles=[];
-   for(let face=0;face<3;face++){
-    const t=(d.id-1)*3+face;
-    d.tiles.push(t);
-    tile(t,d.color,d.pattern);
-   }
-  }
-  
-  this.texture=new THREE.CanvasTexture(c);
-  this.texture.magFilter=THREE.NearestFilter;
-  this.texture.minFilter=THREE.NearestFilter;
-  this.texture.generateMipmaps=false;
-  this.texture.colorSpace=THREE.SRGBColorSpace;
-  
-  // Иконки
-  for(const [key,item] of Registry.items){
-   if(!item.block)continue;
-   const b=Registry.blocks[item.block];
-   if(!b)continue;
-   const t=b.tiles[1]||b.tiles[0];
-   const ic=document.createElement("canvas");
-   ic.width=ic.height=16;
-   ic.getContext("2d").drawImage(c,t%16*16,Math.floor(t/16)*16,16,16,0,0,16,16);
-   item.icon=ic.toDataURL();
-  }
- },
- 
- relocateOrigin(){
-  const p=GameState.localPlayer.position;
-  if(Math.abs(p.x-this.origin.x)<256&&Math.abs(p.z-this.origin.z)<256)return;
-  
-  this.origin.set(Math.floor(p.x/256)*256,0,Math.floor(p.z/256)*256);
-  for(const c of chunks.values())
-   for(const m of c.meshes)
-    m.position.set(c.cx*S-this.origin.x,0,c.cz*S-this.origin.z);
- },
- 
- updateSky(dt){
-  if(GameState.host)GameState.dayTime=(GameState.dayTime+dt/1200)%1;
-  
-  const a=GameState.dayTime*Math.PI*2;
-  const h=Math.sin(a);
-  const light=clamp((h+.17)/.55,0,1);
-  
-  this.scene.background.lerp(new THREE.Color("#95d0e8"),light);
-  this.scene.fog.color.copy(this.scene.background);
-  
-  const p=GameState.localPlayer.position.clone().sub(this.origin);
-  this.sun.target.position.copy(p);
-  this.sun.position.copy(p).add(new THREE.Vector3(Math.cos(a)*65,Math.max(14,h*90),35));
-  this.sun.intensity=.10+Math.max(0,h)*1.2;
+/* ---------------- Remote players ---------------- */
+
+const remotes=new Map();
+function makeRemote(id,p={}){
+ const root=new THREE.Group(),skin=new THREE.MeshLambertMaterial({color:p.skin||"#4e82cf"});
+ const body=new THREE.Mesh(new THREE.BoxGeometry(.58,.75,.32),skin);body.position.y=1.05;
+ const legs=new THREE.Mesh(new THREE.BoxGeometry(.5,.72,.28),new THREE.MeshLambertMaterial({color:"#334a63"}));legs.position.y=.36;
+ const headPivot=new THREE.Group();headPivot.position.y=1.52;
+ const head=new THREE.Mesh(new THREE.BoxGeometry(.52,.52,.52),new THREE.MeshLambertMaterial({color:"#d6a27d"}));headPivot.add(head);
+ root.add(body,legs,headPivot);scene.add(root);
+
+ const tag=document.createElement("div");
+ tag.style.cssText="position:fixed;z-index:9;color:white;font:12px system-ui;text-shadow:0 1px 4px #000;pointer-events:none";
+ tag.textContent=p.nickname||"Player";document.body.append(tag);
+
+ const r={id,root,headPivot,tag,target:new THREE.Vector3(),yaw:0,pitch:0,profile:p};
+ remotes.set(id,r);return r;
+}
+function removeRemote(id){
+ const r=remotes.get(id);if(!r)return;scene.remove(r.root);r.tag.remove();remotes.delete(id);
+}
+const proj=new THREE.Vector3();
+function updateRemotes(dt){
+ for(const r of remotes.values()){
+  const k=1-Math.exp(-12*dt);
+  r.root.position.x=mix(r.root.position.x,r.target.x-origin.x,k);
+  r.root.position.y=mix(r.root.position.y,r.target.y,k);
+  r.root.position.z=mix(r.root.position.z,r.target.z-origin.z,k);
+  r.root.rotation.y=r.yaw;r.headPivot.rotation.x=r.pitch;
+  proj.set(r.root.position.x,r.root.position.y+2.15,r.root.position.z).project(camera);
+  if(proj.z<1){
+   r.tag.style.display="";
+   r.tag.style.left=((proj.x*.5+.5)*innerWidth-r.tag.offsetWidth/2)+"px";
+   r.tag.style.top=((-proj.y*.5+.5)*innerHeight)+"px";
+  }else r.tag.style.display="none";
  }
-};
+}
 
-// ========== INPUT ==========
-const Input={
- keys:new Set(),
- mouse:{left:false,right:false},
- 
- clear(){
-  this.keys.clear();
-  this.mouse.left=this.mouse.right=false;
-  resetBreaking();
- }
-};
+/* ---------------- Network ---------------- */
 
-document.addEventListener("pointerlockchange",()=>{
- GameState.locked=document.pointerLockElement===$("game");
- Input.clear();
- 
- if(GameState.locked){
-  $("pauseMenu").classList.add("hidden");
-  $("inventory").classList.add("hidden");
-  $("console").classList.add("hidden");
- }else{
-  if(GameState.running)$("pauseMenu").classList.remove("hidden");
- }
- 
- $("crosshair").style.opacity=GameState.locked?1:0;
-});
+let peer=null;
+const connections=new Set();
+const netPlayers=new Map();
 
-document.addEventListener("mousemove",e=>{
- if(!GameState.locked)return;
- const s=GameState.settings.sensitivity;
- GameState.localPlayer.yaw-=e.movementX*.0022*s;
- GameState.localPlayer.pitch=clamp(GameState.localPlayer.pitch-e.movementY*.0022*s,-1.55,1.55);
-});
+function myInfo(){
+ return {nickname:profile.nickname,skin:profile.skin,gamemode:player.gamemode};
+}
+function startHost(){
+ peer=new Peer();
+ peer.on("open",id=>{
+  $("serverInfo").textContent="Server ID: "+id;toast("Сервер запущен: "+id);
+ });
+ peer.on("connection",c=>{
+  connections.add(c);wire(c);
+  c.on("open",()=>{
+   c.send({t:"hello",seed:current.seed,time:dayTime,mode:current.mode,
+    profile:myInfo(),position:player.position.toArray()});
+   sendSnapshots(c);
+  });
+ });
+ peer.on("error",e=>toast("PeerJS: "+e.type));
+}
+function connectHost(id){
+ peer=new Peer();
+ peer.on("open",()=>{
+  const c=peer.connect(id,{reliable:true,serialization:"json"});
+  connections.add(c);wire(c);
+ });
+ peer.on("error",e=>toast("PeerJS: "+e.type));
+}
+function wire(c){
+ c.on("data",m=>handleNet(m,c));
+ c.on("close",()=>{connections.delete(c);netPlayers.delete(c.peer);removeRemote(c.peer);refreshPlayers()});
+}
+async function handleNet(m,c){
+ if(!m?.t)return;
 
-document.addEventListener("keydown",e=>{
- if(!GameState.locked){
-  if(e.code==="Escape"&&!$("pauseMenu").classList.contains("hidden"))resumeGame();
+ if(m.t==="hello"&&!host){
+  current.seed=String(m.seed);current.mode=m.mode;dayTime=m.time;
+  player.gamemode="survival";player.flying=false;
+  if(Array.isArray(m.position))player.position.fromArray(m.position);
+  await bootGame(current.seed,true);
+  c.send({t:"join",profile:{nickname:profile.nickname,skin:profile.skin}});
+  toast("Подключено");
   return;
  }
- Input.keys.add(e.code);
- if(e.repeat)return;
- 
- if(/^Digit[1-9]$/.test(e.code)){
-  Inventory.selected=+e.code.slice(-1)-1;
-  refreshInventory();
+ if(m.t==="join"&&host){
+  const data={profile:m.profile||{},gamemode:current.mode==="creative"?"creative":"survival"};
+  netPlayers.set(c.peer,data);
+  c.send({t:"gamemode",value:data.gamemode});
+  networkSend({t:"remoteJoin",id:c.peer,profile:data.profile},c);
+  for(const [id,p] of netPlayers)if(id!==c.peer)c.send({t:"remoteJoin",id,profile:p.profile});
+  c.send({t:"remoteJoin",id:peer.id,profile:{nickname:profile.nickname,skin:profile.skin}});
+  networkSend({t:"remoteJoin",id:c.peer,profile:data.profile},c);
+  refreshPlayers();
+  return;
  }
- if(e.code==="Space")GameState.localPlayer.jumpBuffer=.13;
- if(e.code==="KeyE")openInventory();
- if(e.code==="KeyG"){
-  GameState.localPlayer.gamemode=GameState.localPlayer.gamemode==="creative"?"survival":"creative";
-  toast("Режим: "+GameState.localPlayer.gamemode);
-  Inventory.init();
-  refreshInventory();
+ if(m.t==="remoteJoin"&&!host){
+  if(m.id!==peer.id&&!remotes.has(m.id))makeRemote(m.id,m.profile);
+  return;
  }
- if(e.code==="KeyF"&&GameState.localPlayer.gamemode==="creative"){
-  GameState.localPlayer.flying=!GameState.localPlayer.flying;
-  toast(GameState.localPlayer.flying?"Полёт включён":"Полёт выключен");
+ if(m.t==="gamemode"&&!host){
+  player.gamemode=m.value;player.flying=false;refreshHotbar();toast("Режим: "+m.value);return;
  }
-});
-
-document.addEventListener("keyup",e=>Input.keys.delete(e.code));
-
-document.addEventListener("mousedown",e=>{
- if(!GameState.locked)return;
- e.preventDefault();
- if(e.button===0)Input.mouse.left=true;
- if(e.button===2){Input.mouse.right=true;placeCooldown=0}
-});
-
-document.addEventListener("mouseup",e=>{
- if(e.button===0){Input.mouse.left=false;resetBreaking()}
- if(e.button===2)Input.mouse.right=false;
-});
-
-document.addEventListener("contextmenu",e=>e.preventDefault());
-
-window.addEventListener("blur",()=>{
- Input.clear();
- if(GameState.locked)document.exitPointerLock();
-});
-
-window.addEventListener("resize",()=>{
- if(!Render.renderer)return;
- Render.renderer.setSize(innerWidth,innerHeight);
- Render.camera.aspect=innerWidth/innerHeight;
- Render.camera.updateProjectionMatrix();
-});
-
-// ========== UI CONTROLS ==========
-function resumeGame(){
- if(!GameState.ready)return;
- $("game").requestPointerLock?.();
+ if(m.t==="chunk"&&!host){
+  const c0=ensureChunk(m.cx,m.cz);
+  c0.blocks=new Uint16Array(m.blocks);c0.loading=false;markAround(c0.cx,c0.cz);return;
+ }
+ if(m.t==="needChunk"&&host){
+  const ch=chunks.get(ck(m.cx,m.cz));
+  if(ch?.blocks)c.send({t:"chunk",cx:ch.cx,cz:ch.cz,blocks:Array.from(ch.blocks)});
+  return;
+ }
+ if(m.t==="block"){
+  await changeBlock(m.x,m.y,m.z,m.b,false,false);return;
+ }
+ if(m.t==="action"&&host){
+  const np=netPlayers.get(c.peer);if(!np)return;
+  if(m.a==="set"){
+   const x=+m.x|0,y=+m.y|0,z=+m.z|0,b=+m.b|0;
+   if(Math.abs(y)>H||!Blocks[b])return;
+   await changeBlock(x,y,z,b,true,true);
+  }
+  return;
+ }
+ if(m.t==="pos"){
+  const id=m.id||c.peer;
+  if(host){
+   const np=netPlayers.get(c.peer);if(!np)return;
+   networkSend({t:"pos",id:c.peer,x:m.x,y:m.y,z:m.z,yaw:m.yaw,pitch:m.pitch},c);
+  }
+  if(id!==peer?.id){
+   let r=remotes.get(id);
+   if(!r){
+    const p=host?netPlayers.get(id)?.profile:{nickname:id.slice(0,6),skin:"#4e82cf"};
+    r=makeRemote(id,p||{});
+   }
+   r.target.set(m.x,m.y,m.z);r.yaw=m.yaw;r.pitch=m.pitch||0;
+  }
+  return;
+ }
+ if(m.t==="time"&&!host){dayTime=m.value;return}
 }
+function networkSend(m,except=null){
+ for(const c of connections)if(c!==except&&c.open)c.send(m);
+}
+function sendSnapshots(c){
+ for(const ch of chunks.values())if(ch.blocks)
+  c.send({t:"chunk",cx:ch.cx,cz:ch.cz,blocks:Array.from(ch.blocks)});
+}
+
+/* ---------------- Boot ---------------- */
+
+async function bootGame(seed,guestBoot=false){
+ initThreeOnce();
+ $("main").classList.add("hidden");$("hud").classList.remove("hidden");
+ $("pause").classList.remove("hidden");$("status").style.display="";
+ $("status").textContent="Подготовка мира…";
+ clearRuntime();current.seed=String(seed);
+
+ if(!guestBoot){
+  player.position.fromArray(current.position||[.5,45,.5]);
+  player.previous.copy(player.position);player.yaw=current.yaw||0;player.pitch=current.pitch??-.1;
+  dayTime=current.time??.22;
+  inventory=current.inventory?.map(s=>s?{...s}:null)||Array(36).fill(null);
+  if(player.gamemode==="survival"&&!current.inventory){
+   insert("core:wood_pick",1);insert("core:log",4);
+  }
+ }
+
+ await initWorkers();
+ running=true;ready=true;stream();refreshHotbar();
+ previous=performance.now();accumulator=0;
+
+ $("serverInfo").textContent=host?
+  "Мир готов. Нажмите «Продолжить» для захвата мыши.":
+  "Подключено. Нажмите «Продолжить» для захвата мыши.";
+
+ if(!loopStarted){loopStarted=true;requestAnimationFrame(frame)}
+}
+
+/* ---------------- Pointer lock/input ---------------- */
+
+function clearInput(){keys.clear();mouse.left=mouse.right=false;player.jumpBuffer=0;resetBreak()}
+async function requestLock(){
+ if(!running||!ready)return;
+ const canvas=$("game");canvas.focus();
+ try{
+  const r=canvas.requestPointerLock();
+  if(r?.catch)await r;
+ }catch(e){toast("Браузер не разрешил захват мыши: "+e.message)}
+}
+$("resumeBtn").onclick=requestLock;
+$("game").addEventListener("click",()=>{
+ if(running&&!locked&&$("pause").classList.contains("hidden"))requestLock();
+});
+document.addEventListener("pointerlockchange",()=>{
+ if(!running)return;
+ locked=document.pointerLockElement===$("game");
+ clearInput();previous=performance.now();accumulator=0;player.previous.copy(player.position);
+ $("cross").style.opacity=locked?1:0;
+ if(locked){
+  $("pause").classList.add("hidden");$("inventory").classList.add("hidden");
+  $("admin").classList.add("hidden");$("console").classList.add("hidden");
+ }else if($("inventory").classList.contains("hidden")&&
+          $("admin").classList.contains("hidden")&&$("console").classList.contains("hidden")){
+  $("pause").classList.remove("hidden");saveWorld();
+ }
+});
+document.addEventListener("pointerlockerror",()=>{
+ locked=false;clearInput();$("pause").classList.remove("hidden");
+ toast("Не удалось захватить мышь. Нажмите «Продолжить» ещё раз.");
+});
+document.addEventListener("mousemove",e=>{
+ if(!locked)return;
+ player.yaw-=e.movementX*.0022*sensitivity;
+ player.pitch=clamp(player.pitch-e.movementY*.0022*sensitivity,-1.555,1.555);
+});
+document.addEventListener("keydown",e=>{
+ if(!locked)return;
+ if(["Space","Tab"].includes(e.code))e.preventDefault();
+ keys.add(e.code);
+ if(e.repeat)return;
+ if(e.code==="KeyW"){
+  const n=performance.now();if(n-lastW<280)sprintUntil=n+100000;lastW=n;
+ }
+ if(/^Digit[1-9]$/.test(e.code))select(+e.code.slice(-1)-1);
+ if(e.code==="Space")player.jumpBuffer=.13;
+ if(e.code==="KeyE")openInventory();
+ if(e.code==="KeyF"&&player.gamemode==="creative"){
+  player.flying=!player.flying;player.velocity.y=0;toast(player.flying?"Полёт включён":"Полёт выключен");
+ }
+ if(e.code==="Slash"){e.preventDefault();openConsole()}
+ if(e.code==="KeyG"){
+  if(host){player.gamemode=player.gamemode==="creative"?"survival":"creative";player.flying=false;refreshHotbar()}
+  else toast("Режим гостя меняет администратор");
+ }
+});
+document.addEventListener("keyup",e=>{
+ keys.delete(e.code);
+ if(e.code==="KeyW"&&!keys.has("ControlLeft")&&!keys.has("ControlRight"))sprintUntil=0;
+});
+document.addEventListener("mousedown",e=>{
+ if(!locked)return;e.preventDefault();
+ if(e.button===0)mouse.left=true;
+ if(e.button===2){mouse.right=true;placeCd=0}
+ if(e.button===1&&player.gamemode==="creative"){
+  const t=castRay();if(t&&CREATIVE.includes(Blocks[t.id].key)){
+   creativeBar[selected]=Blocks[t.id].key;refreshHotbar();
+  }
+ }
+});
+document.addEventListener("mouseup",e=>{
+ if(e.button===0){mouse.left=false;resetBreak()}
+ if(e.button===2)mouse.right=false;
+});
+document.addEventListener("wheel",e=>{
+ if(!locked)return;e.preventDefault();select(selected+(e.deltaY>0?1:-1));
+},{passive:false});
+document.addEventListener("contextmenu",e=>e.preventDefault());
+window.addEventListener("blur",()=>{clearInput();if(locked)document.exitPointerLock()});
+window.addEventListener("resize",()=>{
+ if(!renderer)return;renderer.setSize(innerWidth,innerHeight);
+ camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+ handCamera.aspect=camera.aspect;handCamera.updateProjectionMatrix();
+});
+
+/* ---------------- UI/admin/commands ---------------- */
 
 function openInventory(){
- document.exitPointerLock();
- $("inventory").classList.remove("hidden");
- refreshInventory();
+ if(locked)document.exitPointerLock();
+ $("pause").classList.add("hidden");$("inventory").classList.remove("hidden");refreshInventory();
 }
-
-function closeInventory(){
- $("inventory").classList.add("hidden");
- resumeGame();
-}
-
+function closeInventory(){$("inventory").classList.add("hidden");requestLock()}
 function openConsole(){
- $("console").classList.remove("hidden");
- $("consoleCmd").focus();
+ if(locked)document.exitPointerLock();
+ $("pause").classList.add("hidden");$("console").classList.remove("hidden");
+ $("consoleInput").focus();
 }
-
 function closeConsole(){
- $("console").classList.add("hidden");
+ $("console").classList.add("hidden");$("pause").classList.remove("hidden");
 }
-
-function runConsoleCommand(){
- const cmd=$("consoleCmd").value.trim();
- if(!cmd)return;
- 
- const log=document.createElement("div");
- log.textContent="> "+cmd;
- $("consoleOutput").append(log);
- 
- execCommand(cmd);
- $("consoleCmd").value="";
+function logConsole(s){
+ const e=document.createElement("div");e.textContent=s;$("consoleLog").append(e);
+ $("consoleLog").scrollTop=$("consoleLog").scrollHeight;
 }
+$("consoleRun").onclick=()=>{const s=$("consoleInput").value.trim();if(s){runCommand(s);$("consoleInput").value=""}};
+$("consoleInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("consoleRun").click()});
 
-function execCommand(cmd){
- const [name,...args]=cmd.replace(/^\//,"").split(/\s+/);
- const fn=Registry.commands.get(name);
- if(!fn){
-  toast("Неизвестная команда: "+name);
-  return;
- }
+function runCommand(text){
+ logConsole("> "+text);
+ const [cmd,...a]=text.replace(/^\//,"").trim().split(/\s+/);
  try{
-  fn(args);
- }catch(e){
-  toast(e.message);
- }
+  if(cmd==="help")logConsole("/help /time day|night /home /tp x y z /gamemode creative|survival [player] /give item count");
+  else if(cmd==="home")home();
+  else if(cmd==="time"){
+   if(!host)throw Error("Только хост");
+   dayTime=a[0]==="night"?.75:.25;networkSend({t:"time",value:dayTime});
+  }else if(cmd==="tp"){
+   if(!host)throw Error("Только хост");
+   player.position.set(+a[0],+a[1],+a[2]);player.velocity.set(0,0,0);
+  }else if(cmd==="gamemode"){
+   if(!host)throw Error("Только хост");
+   if(!["creative","survival"].includes(a[0]))throw Error("creative или survival");
+   if(a[1]){
+    const entry=[...netPlayers.entries()].find(([id,p])=>p.profile.nickname===a[1]||id===a[1]);
+    if(!entry)throw Error("Игрок не найден");
+    entry[1].gamemode=a[0];
+    const c=[...connections].find(c=>c.peer===entry[0]);c?.send({t:"gamemode",value:a[0]});
+   }else{
+    player.gamemode=a[0];player.flying=false;refreshHotbar();
+   }
+  }else if(cmd==="give"){
+   if(!host)throw Error("Только хост");
+   if(!Items.has(a[0]))throw Error("Предмет не найден");
+   insert(a[0],Math.max(1,+a[1]||1));refreshHotbar();
+  }else throw Error("Неизвестная команда. /help");
+ }catch(e){logConsole("! "+e.message);toast(e.message)}
 }
-
+function home(){
+ player.position.set(.5,45,.5);player.velocity.set(0,0,0);
+ setTimeout(()=>{
+  for(let y=H-3;y>0;y--)if(solid(0,y,0)&&!solid(0,y+1,0)&&!solid(0,y+2,0)){
+   player.position.y=y+1.01;break
+  }
+ },300);
+}
 function openAdmin(){
- if(!GameState.host){
-  toast("Админка доступна только хосту");
-  return;
+ if(!host)return toast("Админка доступна владельцу мира");
+ if(locked)document.exitPointerLock();
+ $("pause").classList.add("hidden");$("admin").classList.remove("hidden");refreshPlayers();
+}
+function closeAdmin(){$("admin").classList.add("hidden");$("pause").classList.remove("hidden")}
+function adminTab(n,b){
+ document.querySelectorAll(".adminPage").forEach(e=>e.classList.remove("active"));
+ document.querySelectorAll(".tabs button").forEach(e=>e.classList.remove("active"));
+ $("admin-"+n).classList.add("active");b.classList.add("active");if(n==="players")refreshPlayers();
+}
+function refreshPlayers(){
+ if(!$("players"))return;$("players").innerHTML="";
+ const own=document.createElement("div");own.className="playerRow";
+ own.innerHTML=`<b>${esc(profile.nickname)} (owner)</b><span>${player.gamemode}</span><span>локально</span>`;
+ $("players").append(own);
+ for(const [id,p] of netPlayers){
+  const e=document.createElement("div");e.className="playerRow";
+  const name=document.createElement("b");name.textContent=p.profile.nickname||id.slice(0,8);
+  const sel=document.createElement("select");
+  ["survival","creative"].forEach(g=>{const o=document.createElement("option");o.value=g;o.textContent=g;
+   o.selected=p.gamemode===g;sel.append(o)});
+  sel.onchange=()=>runCommand(`/gamemode ${sel.value} ${id}`);
+  const x=document.createElement("span");x.textContent=id.slice(0,7);
+  e.append(name,sel,x);$("players").append(e);
  }
- $("pauseMenu").classList.add("hidden");
- $("admin").classList.remove("hidden");
 }
-
-function closeAdmin(){
- $("admin").classList.add("hidden");
- $("pauseMenu").classList.remove("hidden");
-}
-
-function switchAdminTab(tab){
- const tabs=["world","players","permissions","scripts"];
- tabs.forEach(t=>{
-  $("admin"+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle("active",t===tab);
- });
- document.querySelectorAll(".admin-tab").forEach((b,i)=>
-  b.classList.toggle("active",tabs[i]===tab)
- );
-}
-
-function runScript(){
- const code=$("scriptEditor").value;
+const scriptObjects=[];
+function runRuntimeScript(){
+ if(!host)return;
+ const api={
+  toast,
+  getBlock:(x,y,z)=>Blocks[getBlock(x,y,z)]?.key,
+  setBlock:(x,y,z,key)=>changeBlock(x,y,z,BlockID[key]??0),
+  give:(key,n=1)=>{if(Items.has(key)){insert(key,n);refreshHotbar()}},
+  spawnCube:(x,y,z,color="#fff")=>{
+   const m=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color}));
+   m.position.set(x-origin.x,y,z-origin.z);scene.add(m);scriptObjects.push(m);return m;
+  }
+ };
  try{
-  eval(code);
-  toast("Скрипт выполнен");
- }catch(e){
-  toast("Ошибка: "+e.message);
- }
+  Function("api","player","THREE",'"use strict";\n'+$("scriptEditor").value)(api,player,THREE);
+ }catch(e){toast("Script: "+e.message)}
+}
+async function copyServer(){
+ if(!peer?.id)return toast("Server ID ещё не готов");
+ try{await navigator.clipboard.writeText(peer.id);toast("Server ID скопирован")}
+ catch{prompt("Server ID",peer.id)}
 }
 
-// ========== NETWORK ==========
-const Network={
- peer:null,
- connections:new Set(),
- 
- startHost(){
-  this.peer=new Peer();
-  this.peer.on("open",id=>{
-   $("serverInfo").textContent="Server ID: "+id;
-   toast("Сервер запущен");
-  });
-  this.peer.on("connection",c=>{
-   this.connections.add(c);
-   this.wire(c);
-   c.on("open",()=>{
-    c.send({t:"hello",seed:GameState.seed,dimension:GameState.dimension,time:GameState.dayTime});
-   });
-  });
- },
- 
- connect(id){
-  this.peer=new Peer();
-  this.peer.on("open",()=>{
-   const c=this.peer.connect(id,{reliable:true});
-   this.connections.add(c);
-   this.wire(c);
-   c.on("open",()=>toast("Подключено к серверу"));
-  });
- },
- 
- wire(c){
-  c.on("data",m=>this.handle(m,c));
-  c.on("close",()=>this.connections.delete(c));
- },
- 
- handle(m,c){
-  if(!m||!m.t)return;
-  
-  if(m.t==="hello"&&!GameState.host){
-   GameState.seed=m.seed;
-   GameState.dimension=m.dimension;
-   GameState.dayTime=m.time;
-  }
-  
-  if(m.t==="block"){
-   changeBlock(m.x,m.y,m.z,m.id,false,false);
-  }
-  
-  if(m.t==="pos"){
-   // TODO: remote player sync
-  }
- },
- 
- send(msg,except=null){
-  for(const c of this.connections)
-   if(c!==except&&c.open)c.send(msg);
- }
+$("distance").oninput=e=>{radius=+e.target.value;stream()};
+$("sensitivity").oninput=e=>sensitivity=+e.target.value;
+$("quality").onchange=()=>{
+ const q=$("quality").value;
+ renderer.setPixelRatio(Math.min(devicePixelRatio,q==="low"?1:q==="high"?1.7:1.35));
+ renderer.shadowMap.enabled=q!=="low";
 };
 
-// ========== SAVE ==========
+/* ---------------- Save ---------------- */
+
 async function saveWorld(manual=false){
- if(!GameState.host||!GameState.worldID||GameState.worldID==="guest")return;
- 
- const world=await idbGetWorld(GameState.worldID);
- if(!world)return;
- 
- world.position=GameState.localPlayer.position.toArray();
- world.yaw=GameState.localPlayer.yaw;
- world.pitch=GameState.localPlayer.pitch;
- world.dimension=GameState.dimension;
- world.dayTime=GameState.dayTime;
- 
- await idbPutWorld(world);
- if(manual)toast("Мир сохранён ✓");
-}
-
-// ========== GAME START ==========
-async function startGame(){
- $("mainMenu").classList.add("hidden");
- $("hud").classList.remove("hidden");
- 
- Profile.update();
- 
- if(!Render.renderer)Render.init();
- 
- await initWorkers();
- 
- Inventory.init();
- refreshInventory();
- stream();
- 
- GameState.ready=true;
- GameState.running=true;
- 
- frame();
-}
-
-// ========== MAIN LOOP ==========
-const STEP=1/120;
-let previous=performance.now(),accumulator=0;
-let streamClock=0,meshClock=0,saveClock=0,hudClock=0;
-let fpsClock=0,fpsFrames=0,fps=60;
-
-function frame(){
- if(!GameState.running)return;
- requestAnimationFrame(frame);
- 
- const now=performance.now();
- const realDt=Math.max(0,(now-previous)/1000);
- previous=now;
- const dt=Math.min(realDt,.075);
- 
- streamClock-=dt;
- if(streamClock<=0){streamClock=.16;stream()}
- 
- uploadMeshes();
- 
- meshClock-=dt;
- if(meshClock<=0){meshClock=.02;scheduleMesh()}
- 
- if(GameState.locked){
-  accumulator=Math.min(accumulator+dt,.075);
-  while(accumulator>=STEP){
-   simulate(STEP);
-   accumulator-=STEP;
-  }
-  updateInteraction(dt);
- }else{
-  accumulator=0;
-  GameState.localPlayer.previous.copy(GameState.localPlayer.position);
+ if(!host||!current||current.id==="guest")return;
+ current.position=player.position.toArray();current.yaw=player.yaw;current.pitch=player.pitch;
+ current.time=dayTime;current.mode=player.gamemode;current.inventory=inventory.map(s=>s?{...s}:null);
+ await putWorld(current);
+ if(worldMeta[current.id]){
+  worldMeta[current.id].mode=current.mode;saveMeta();
  }
- 
- Render.relocateOrigin();
- 
- const alpha=GameState.locked?accumulator/STEP:1;
- Render.camera.position.copy(GameState.localPlayer.previous)
-  .lerp(GameState.localPlayer.position,alpha)
-  .sub(Render.origin);
- 
- const desiredBob=GameState.locked&&GameState.localPlayer.grounded&&GameState.settings.headBob?
-  Math.sin(walkPhase)*.035:0;
+ if(manual)toast("Сохранено ✓");
+}
+async function leaveWorld(){await saveWorld();location.reload()}
+
+/* ---------------- Sky/light/view ---------------- */
+
+const dayColor=new THREE.Color("#95d0e8"),nightColor=new THREE.Color("#142540"),sunset=new THREE.Color("#e8ae91");
+let lampClock=0;
+function updateSky(dt){
+ if(host)dayTime=(dayTime+dt/1200)%1;
+ const a=dayTime*Math.PI*2,h=Math.sin(a),light=clamp((h+.17)/.55,0,1);
+ scene.background.copy(nightColor).lerp(dayColor,light);
+ scene.background.lerp(sunset,Math.max(0,1-Math.abs(h)/.22)*.34);
+ scene.fog.color.copy(scene.background);scene.fog.near=radius*S*.55;scene.fog.far=radius*S*.98;
+ hemi.intensity=.35+light*.85;
+ const center=player.position.clone().sub(origin);
+ sun.target.position.copy(center);sun.position.copy(center).add(new THREE.Vector3(Math.cos(a)*65,Math.max(14,h*90),35));
+ sun.intensity=.08+Math.max(0,h)*1.25;sun.color.set(h<.25?"#ffc58e":"#ffefd7");
+
+ lampClock-=dt;
+ if(lampClock<=0){
+  lampClock=.25;const list=[];
+  for(const c of chunks.values())if(c.blocks)
+   for(let i=0;i<c.blocks.length;i++)if(Blocks[c.blocks[i]]?.glow){
+    const y=Math.floor(i/256),z=Math.floor(i%256/16),x=i%16;
+    const wx=c.cx*S+x+.5,wz=c.cz*S+z+.5,d=(wx-player.position.x)**2+(y-player.position.y)**2+(wz-player.position.z)**2;
+    if(d<225)list.push({x:wx,y:y+.5,z:wz,d});
+   }
+  list.sort((a,b)=>a.d-b.d);
+  lamps.forEach((l,i)=>{
+   const p=list[i];l.intensity=p?4.8:0;if(p)l.position.set(p.x-origin.x,p.y,p.z-origin.z);
+  });
+ }
+}
+function relocate(){
+ if(Math.abs(player.position.x-origin.x)<256&&Math.abs(player.position.z-origin.z)<256)return;
+ origin.set(Math.floor(player.position.x/256)*256,0,Math.floor(player.position.z/256)*256);
+ for(const c of chunks.values())for(const m of c.meshes)m.position.set(c.cx*S-origin.x,0,c.cz*S-origin.z);
+ for(const o of scriptObjects)o.position.x-=origin.x;
+}
+
+/* ---------------- Loop ---------------- */
+
+const STEP=1/120;
+let previous=performance.now(),accumulator=0,streamClock=0,meshClock=0,netClock=0,saveClock=0;
+let fpsClock=0,fpsFrames=0,fps=60,loopStarted=false;
+
+function frame(now){
+ requestAnimationFrame(frame);
+ if(!running){previous=now;return}
+ const realDt=Math.max(0,(now-previous)/1000);previous=now;
+ const dt=Math.min(realDt,.075);
+
+ streamClock-=dt;if(streamClock<=0){
+  streamClock=.16;stream();
+  if(!host){
+   const cx=Math.floor(player.position.x/S),cz=Math.floor(player.position.z/S);
+   for(let z=-radius;z<=radius;z++)for(let x=-radius;x<=radius;x++){
+    const c=ensureChunk(cx+x,cz+z);
+    if(!c.blocks)networkSend({t:"needChunk",cx:c.cx,cz:c.cz});
+   }
+  }
+ }
+ uploadMeshes();meshClock-=dt;if(meshClock<=0){meshClock=.025;scheduleMesh()}
+
+ if(locked){
+  accumulator=Math.min(accumulator+dt,.075);
+  while(accumulator>=STEP){simulate(STEP);accumulator-=STEP}
+ }else{accumulator=0;player.previous.copy(player.position)}
+
+ relocate();
+ const alpha=locked?accumulator/STEP:1;
+ camera.position.copy(player.previous).lerp(player.position,alpha).sub(origin);
+ const desiredBob=locked&&player.grounded&&$("bob").checked?Math.sin(walkPhase)*.032:0;
  walkBob=mix(walkBob,desiredBob,1-Math.exp(-15*dt));
- 
- Render.camera.position.y+=1.62+walkBob;
- Render.camera.rotation.set(GameState.localPlayer.pitch,GameState.localPlayer.yaw,0,"YXZ");
- Render.camera.updateMatrixWorld();
- 
- Render.updateSky(GameState.locked?dt:0);
- 
- saveClock+=dt;
- if(saveClock>15){saveClock=0;saveWorld()}
- 
+ camera.position.y+=1.62+walkBob;
+ camera.rotation.set(player.pitch,player.yaw,0,"YXZ");
+ const fov=locked&&player.sprinting&&!player.flying?79:74;
+ if(Math.abs(camera.fov-fov)>.01){camera.fov=mix(camera.fov,fov,1-Math.exp(-8*dt));camera.updateProjectionMatrix()}
+ camera.updateMatrixWorld();
+
+ if(locked)updateInteraction(dt);else{outline.visible=false;resetBreak()}
+ updateSky(locked?dt:0);
+
+ handSwing=Math.max(0,handSwing-dt*3.5);
+ const sw=Math.sin(handSwing*Math.PI);
+ handGroup.position.set(.43-sw*.1,-.31-sw*.07,-.78-sw*.1);
+ handGroup.rotation.set(-sw*.3,-sw*.25,-.08+sw*.14);
+
+ updateRemotes(dt);
+
+ netClock+=dt;
+ if(netClock>.05){
+  netClock=0;
+  const m={t:"pos",x:player.position.x,y:player.position.y,z:player.position.z,yaw:player.yaw,pitch:player.pitch};
+  networkSend(m);
+ }
+
+ saveClock+=dt;if(saveClock>15){saveClock=0;saveWorld()}
+
  fpsFrames++;fpsClock+=realDt;
  if(fpsClock>.5){fps=Math.round(fpsFrames/fpsClock);fpsFrames=0;fpsClock=0}
- 
- hudClock+=dt;
- if(hudClock>.25){
-  hudClock=0;
-  const p=GameState.localPlayer.position;
-  $("stats").textContent=`${fps} FPS\nX ${Math.floor(p.x)} Y ${Math.floor(p.y)} Z ${Math.floor(p.z)}\nChunks ${chunks.size}`;
-  $("mode").textContent=
-   (GameState.localPlayer.gamemode==="creative"?"ТВОРЧЕСТВО":"ВЫЖИВАНИЕ")+
-   (GameState.localPlayer.flying?" · ПОЛЁТ":"")+
-   "\n"+Registry.dimensions.get(GameState.dimension).name;
+
+ const loaded=[...chunks.values()].filter(c=>c.blocks).length;
+ $("status").style.display=loaded>=4?"none":"block";
+ $("stats").textContent=`${fps} FPS
+XYZ ${Math.floor(player.position.x)} ${Math.floor(player.position.y)} ${Math.floor(player.position.z)}
+чанки ${loaded}/${chunks.size} · задачи ${queue.length}
+draw ${renderer.info.render.calls} · tris ${renderer.info.render.triangles}`;
+
+ $("mode").textContent=
+ `${player.gamemode.toUpperCase()}${player.flying?" · ПОЛЁТ":player.sneaking?" · SNEAK":player.sprinting?" · SPRINT":""}
+WASD · Space · Shift sneak
+Ctrl / двойной W sprint · E inventory
+F полёт · / консоль`;
+
+ renderer.info.reset();renderer.autoClear=true;renderer.render(scene,camera);
+ if(locked){
+  renderer.autoClear=false;renderer.clearDepth();renderer.render(handScene,handCamera);renderer.autoClear=true;
  }
- 
- Render.renderer.render(Render.scene,Render.camera);
 }
 
-// ========== TOAST ==========
+/* ---------------- Toast ---------------- */
+
 let toastTimer;
-function toast(text){
- $("toast").textContent=text;
- $("toast").classList.add("show");
- clearTimeout(toastTimer);
- toastTimer=setTimeout(()=>$("toast").classList.remove("show"),2500);
+function toast(s){
+ $("toast").textContent=s;$("toast").classList.add("show");
+ clearTimeout(toastTimer);toastTimer=setTimeout(()=>$("toast").classList.remove("show"),2400);
 }
-
-// ========== BOOT ==========
-Profile.load();
-loadWorldList();
-
-// Skin picker
-const presets=["#4e82cf","#7bc96f","#f39c12","#e74c3c","#9b59b6","#1abc9c"];
-const picker=$("skinPicker");
-for(const color of presets){
- const div=document.createElement("div");
- div.className="skin-preset";
- div.style.background=color;
- div.onclick=()=>{
-  GameState.localPlayer.profile.skin=color;
-  Profile.save();
-  picker.querySelectorAll(".skin-preset").forEach(e=>e.classList.remove("selected"));
-  div.classList.add("selected");
- };
- if(color===GameState.localPlayer.profile.skin)div.classList.add("selected");
- picker.append(div);
-}
-
-$("distance").value=GameState.settings.radius;
-$("sensitivity").value=GameState.settings.sensitivity;
-$("distance").oninput=e=>{GameState.settings.radius=+e.target.value;stream()};
-$("sensitivity").oninput=e=>GameState.settings.sensitivity=+e.target.value;
-
-console.log("BlockWorld Next v3 готов к запуску!");
 </script>
 </body>
 </html>
