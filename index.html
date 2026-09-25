@@ -199,6 +199,7 @@ let dirty=false;
 function loadJSON(k,fallback){
  try{return JSON.parse(localStorage.getItem(k))||fallback}catch{return fallback}
 }
+
 function persistWorldList(){
  try{
   localStorage.setItem(DBKEY,JSON.stringify(worlds));
@@ -216,6 +217,7 @@ function persistWorldList(){
    alert("Хранилище браузера заполнено. Экспортируй или удали старый мир.");
    return false;
   }
+ }
 }
 
 function makeWorld(name,seed,mode){
@@ -430,14 +432,11 @@ function generateChunk(cx,cz){
   for(let lz=0;lz<CHUNK;lz++){
    const x=cx*CHUNK+lx,z=cz*CHUNK+lz,h=terrainHeight(x,z);
 
-   // Only surface layers are rendered; deep blocks are generated
-   // logically on demand.
    for(let y=Math.max(-3,h-3);y<=h;y++){
     const t=finalType(x,y,z);
     if(t)addBlock(x,y,z,t);
    }
 
-   // Deterministic trees.
    if(h>3 && hash2(x*7+91,z*11-22)>.987){
     for(let y=1;y<=4;y++){
      if(finalType(x,h+y,z)!==0) continue;
