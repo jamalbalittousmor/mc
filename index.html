@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BlockCraft P2P — 1 HTML</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#87ceeb;font-family:Arial,sans-serif}
+canvas{display:block}
+#crosshair{
+ position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+ color:white;font:bold 28px monospace;text-shadow:0 0 3px #000;
+ pointer-events:none;z-index:5
+}
+#ui{
+ position:fixed;left:12px;top:12px;width:310px;z-index:10;
+ padding:12px;color:#fff;background:#0009;border-radius:10px;
+ backdrop-filter:blur(5px)
+}
+#ui h3{margin:0 0 7px}
+#ui small{display:block;line-height:1.35;color:#ddd}
+input,button{
+ width:100%;border:0;border-radius:6px;padding:8px;margin-top:5px;
+ color:white;background:#222
+}
+button{background:#26824b;font-weight:bold;cursor:pointer}
+.row{display:flex;gap:5px}.row>*{flex:1}
+#status{font-size:12px;color:#ddd;margin-top:7px}
+#hotbar{
+ position:fixed;left:50%;bottom:20px;transform:translateX(-50%);
+ display:flex;gap:5px;z-index:10
+}
+.slot{
+ width:54px;height:54px;border:3px solid #aaa;background:#222c;
+ color:white;display:flex;align-items:center;justify-content:center;
+ font:bold 14px monospace;box-shadow:0 2px 8px #000
+}
+.slot.active{border-color:white;transform:scale(1.1)}
+#hint{
+ position:fixed;top:50%;left:50%;transform:translate(-50%,55px);
+ background:#0009;color:white;padding:8px 14px;border-radius:8px;
+ pointer-events:none
+}
+</style>
+</head>
+<body>
+
+<div id="ui">
+ <h3>⛏ BlockCraft P2P</h3>
+ <small>WASD — ходьба · мышь — обзор</small>
+ <small>Space — прыжок · ЛКМ — сломать · ПКМ — поставить</small>
+ <small>1–5 — выбрать блок · Esc — освободить мышь</small>
+
+ <div style="margin-top:8px">Твой ID: <b id="myid">...</b></div>
+ <div class="row">
+  <button id="host">Создать мир</button>
+  <button id="copy">Копировать ID</button>
+ </div>
+ <input id="joinid" placeholder="ID хоста">
+ <button id="join">Подключиться</button>
+ <div id="status">Нажми на игру для захвата мыши</div>
+</div>
+
+<div id="crosshair">+</div>
+<div id="hint">Кликни по экрану, чтобы играть</div>
+
+<div id="hotbar">
+ <div class="slot active" data-i="1">1<br>🌱</div>
+ <div class="slot" data-i="2">2<br>🟫</div>
+ <div class="slot" data-i="3">3<br>🪨</div>
+ <div class="slot" data-i="4">4<br>🪵</div>
+ <div class="slot" data-i="5">5<br>⬜</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+<script>
+/* =========================================================
+   BLOCKCRAFT — Minecraft-like P2P prototype in one HTML file
+   ========================================================= */
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x87ceeb);
+scene.fog=new THREE.Fog(0x87ceeb,25,65);
+
+const camera=new THREE.PerspectiveCamera(
+ 75,innerWidth/innerHeight,.1,100
+);
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+document.body.appendChild(renderer.domElement);
+
+/* ---------- LIGHT ---------- */
+scene.add(new THREE.HemisphereLight(0xbfe8ff,0x725333,.9));
+
+const sun=new THREE.DirectionalLight(0xffffff,.85);
+sun.position.set(15,30,10);
+sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024);
+scene.add(sun);
+
+/* ---------- BLOCKS ---------- */
+
+const blockColors={
+ 1:0x55a630, // grass
+ 2:0x8b5a2b, // dirt
+ 3:0x888888, // stone
+ 4:0x9a6a38, // wood
+ 5:0xe2e2d5  // sand-ish
+};
+
+const geometry=new THREE.BoxGeometry(1,1,1);
+
+const materials={};
+for(const id in blockColors){
+ materials[id]=new THREE.MeshLambertMaterial({
+  color:blockColors[id]
+ });
+}
+
+const blocks=new Map();
+const blockGroup=new THREE.Group();
+scene.add(blockGroup);
+
+function blockKey(x,y,z){
+ return x+","+y+","+z;
+}
+
+function addBlock(x,y,z,type=1,network=false){
+ x=Math.round(x); y=Math.round(y); z=Math.round(z);
+
+ const key=blockKey(x,y,z);
+ if(blocks.has(key)) return;
+
+ const mesh=new THREE.Mesh(geometry,materials[type]||materials[1]);
+ mesh.position.set(x,y,z);
+ mesh.castShadow=true;
+ mesh.receiveShadow=true;
+ mesh.userData={x,y,z,type};
+
+ blocks.set(key,mesh);
+ blockGroup.add(mesh);
+
+ if(network) send({
+  type:"block",
+  action:"add",
+  x,y,z,
+  blockType:type
+ });
+}
+
+function removeBlock(x,y,z,network=false){
+ const key=blockKey(x,y,z);
+ const mesh=blocks.get(key);
+ if(!mesh)return;
+
+ blockGroup.remove(mesh);
+ blocks.delete(key);
+
+ if(network) send({
+  type:"block",
+  action:"remove",
+  x,y,z
+ });
+}
+
+/* ---------- GENERATE WORLD ---------- */
+
+function generateWorld(){
+ // Ground with mild hills
+ for(let x=-16;x<=16;x++){
+  for(let z=-16;z<=16;z++){
+   let h=Math.floor(
+    Math.sin(x*.35)*.6+
+    Math.cos(z*.28)*.6
+   );
+
+   for(let y=-2;y<=h;y++){
+    let type=y===h?1:(y>h-2?2:3);
+    addBlock(x,y,z,type);
+   }
+  }
+ }
+
+ // trees
+ const trees=[
+  [-7,0,-6],[7,0,-5],[-9,0,7],
+  [10,0,8],[3,0,10],[-2,0,-11]
+ ];
+
+ for(const [x,,z] of trees){
+  let groundY=5;
+  for(let y=5;y>=-3;y--){
+   if(blocks.has(blockKey(x,y,z))){
+    groundY=y;break;
+   }
+  }
+
+  for(let y=1;y<=4;y++)
+   addBlock(x,groundY+y,z,4);
+
+  for(let dx=-2;dx<=2;dx++)
+   for(let dz=-2;dz<=2;dz++)
+    for(let dy=3;dy<=5;dy++){
+     if(Math.abs(dx)+Math.abs(dz)<4)
+      addBlock(x+dx,groundY+dy,z+dz,1);
+    }
+ }
+}
+
+generateWorld();
+
+/* ---------- PLAYER ---------- */
+
+const player={
+ pos:new THREE.Vector3(0,5,5),
+ vel:new THREE.Vector3(),
+ yaw:0,
+ pitch:0,
+ height:1.7,
+ radius:.3,
+ grounded:false
+};
+
+camera.position.copy(player.pos);
+camera.position.y+=1.55;
+
+const keys={};
+
+addEventListener("keydown",e=>{
+ keys[e.code]=true;
+
+ if(e.code==="Space" && player.grounded){
+  player.vel.y=7;
+  player.grounded=false;
+ }
+
+ if(/^Digit[1-5]$/.test(e.code)){
+  selected=Number(e.code.slice(5));
+  updateHotbar();
+ }
+});
+
+addEventListener("keyup",e=>keys[e.code]=false);
+
+/* ---------- POINTER LOCK ---------- */
+
+const hint=document.getElementById("hint");
+
+renderer.domElement.onclick=()=>{
+ renderer.domElement.requestPointerLock();
+};
+
+document.addEventListener("pointerlockchange",()=>{
+ hint.style.display=
+  document.pointerLockElement===renderer.domElement
+   ?"none":"block";
+});
+
+document.addEventListener("mousemove",e=>{
+ if(document.pointerLockElement!==renderer.domElement)return;
+
+ player.yaw-=e.movementX*.0022;
+ player.pitch-=e.movementY*.0022;
+ player.pitch=Math.max(
+  -Math.PI/2+.05,
+  Math.min(Math.PI/2-.05,player.pitch)
+ );
+});
+
+/* ---------- COLLISION ---------- */
+
+function solidAt(x,y,z){
+ return blocks.has(blockKey(
+  Math.round(x),
+  Math.round(y),
+  Math.round(z)
+ ));
+}
+
+function playerCollides(pos){
+ const r=player.radius;
+
+ const minX=Math.floor(pos.x-r+.5);
+ const maxX=Math.floor(pos.x+r+.5);
+ const minZ=Math.floor(pos.z-r+.5);
+ const maxZ=Math.floor(pos.z+r+.5);
+
+ const feet=pos.y;
+ const head=pos.y+player.height;
+
+ const minY=Math.floor(feet+.5);
+ const maxY=Math.floor(head-.01+.5);
+
+ for(let x=minX;x<=maxX;x++)
+  for(let y=minY;y<=maxY;y++)
+   for(let z=minZ;z<=maxZ;z++)
+    if(blocks.has(blockKey(x,y,z)))return true;
+
+ return false;
+}
+
+/* ---------- MOVEMENT ---------- */
+
+function updatePlayer(dt){
+ const forward=
+  (keys.KeyW||keys.ArrowUp?1:0)-
+  (keys.KeyS||keys.ArrowDown?1:0);
+
+ const side=
+  (keys.KeyD||keys.ArrowRight?1:0)-
+  (keys.KeyA||keys.ArrowLeft?1:0);
+
+ const speed=keys.ShiftLeft?7:4.5;
+
+ let dx=0,dz=0;
+
+ if(forward||side){
+  const len=Math.hypot(forward,side);
+  const f=forward/len;
+  const s=side/len;
+
+  dx=(-Math.sin(player.yaw)*f+
+      Math.cos(player.yaw)*s)*speed*dt;
+
+  dz=(-Math.cos(player.yaw)*f-
+      Math.sin(player.yaw)*s)*speed*dt;
+ }
+
+ let test=player.pos.clone();
+ test.x+=dx;
+ if(!playerCollides(test))
+  player.pos.x=test.x;
+
+ test=player.pos.clone();
+ test.z+=dz;
+ if(!playerCollides(test))
+  player.pos.z=test.z;
+
+ player.vel.y-=18*dt;
+ player.vel.y=Math.max(player.vel.y,-20);
+
+ test=player.pos.clone();
+ test.y+=player.vel.y*dt;
+
+ if(!playerCollides(test)){
+  player.pos.y=test.y;
+  player.grounded=false;
+ }else{
+  if(player.vel.y<0)player.grounded=true;
+  player.vel.y=0;
+ }
+
+ if(player.pos.y<-15){
+  player.pos.set(0,8,5);
+  player.vel.set(0,0,0);
+ }
+
+ camera.position.set(
+  player.pos.x,
+  player.pos.y+1.55,
+  player.pos.z
+ );
+
+ camera.rotation.order="YXZ";
+ camera.rotation.y=player.yaw;
+ camera.rotation.x=player.pitch;
+}
+
+/* ---------- MINING / PLACING ---------- */
+
+const raycaster=new THREE.Raycaster();
+raycaster.far=6;
+
+let selected=1;
+
+function updateHotbar(){
+ document.querySelectorAll(".slot").forEach(el=>{
+  el.classList.toggle(
+   "active",
+   Number(el.dataset.i)===selected
+  );
+ });
+}
+updateHotbar();
+
+function targetBlock(){
+ raycaster.setFromCamera(new THREE.Vector2(0,0),camera);
+ const hits=raycaster.intersectObjects(blockGroup.children,false);
+ return hits.length?hits[0]:null;
+}
+
+addEventListener("mousedown",e=>{
+ if(document.pointerLockElement!==renderer.domElement)return;
+
+ const hit=targetBlock();
+ if(!hit)return;
+
+ if(e.button===0){
+  const p=hit.object.userData;
+
+  // Avoid deleting very bottom bedrock-ish layer
+  if(p.y<=-2)return;
+
+  removeBlock(p.x,p.y,p.z,true);
+ }
+
+ if(e.button===2){
+  const p=hit.object.position.clone()
+   .add(hit.face.normal);
+
+  const x=Math.round(p.x);
+  const y=Math.round(p.y);
+  const z=Math.round(p.z);
+
+  // Don't place a block inside player
+  const temp=player.pos.clone();
+  const key=blockKey(x,y,z);
+
+  if(!blocks.has(key)){
+   addBlock(x,y,z,selected,false);
+
+   if(playerCollides(temp)){
+    removeBlock(x,y,z,false);
+   }else{
+    send({
+     type:"block",
+     action:"add",
+     x,y,z,
+     blockType:selected
+    });
+   }
+  }
+ }
+});
+
+addEventListener("contextmenu",e=>e.preventDefault());
+
+/* ---------- REMOTE PLAYER ---------- */
+
+const remoteGroup=new THREE.Group();
+
+const remoteBody=new THREE.Mesh(
+ new THREE.BoxGeometry(.6,1.1,.35),
+ new THREE.MeshLambertMaterial({color:0x3388ff})
+);
+remoteBody.position.y=.9;
+
+const remoteHead=new THREE.Mesh(
+ new THREE.BoxGeometry(.55,.55,.55),
+ new THREE.MeshLambertMaterial({color:0xe0a070})
+);
+remoteHead.position.y=1.72;
+
+remoteGroup.add(remoteBody,remoteHead);
+remoteGroup.visible=false;
+scene.add(remoteGroup);
+
+let remoteTarget=new THREE.Vector3();
+
+/* ---------- P2P ---------- */
+
+let peer=null;
+let conn=null;
+let isHost=false;
+
+const myId=document.getElementById("myid");
+const status=document.getElementById("status");
+
+function setStatus(t){
+ status.textContent=t;
+}
+
+function setupPeer(){
+ if(peer)return;
+
+ peer=new Peer();
+
+ peer.on("open",id=>{
+  myId.textContent=id;
+ });
+
+ peer.on("connection",c=>{
+  if(conn){
+   c.close();
+   return;
+  }
+
+  conn=c;
+  setupConnection();
+
+  if(isHost){
+   conn.on("open",()=>{
+    sendWorld();
+   });
+  }
+ });
+
+ peer.on("error",e=>{
+  setStatus("PeerJS: "+e.type);
+ });
+}
+
+function setupConnection(){
+ conn.on("open",()=>{
+  setStatus("Второй игрок подключён");
+  remoteGroup.visible=true;
+ });
+
+ conn.on("data",onNetworkData);
+
+ conn.on("close",()=>{
+  setStatus("Игрок отключился");
+  remoteGroup.visible=false;
+  conn=null;
+ });
+}
+
+function send(data){
+ if(conn && conn.open)conn.send(data);
+}
+
+function sendWorld(){
+ const world=[];
+
+ blocks.forEach(b=>{
+  world.push([
+   b.userData.x,
+   b.userData.y,
+   b.userData.z,
+   b.userData.type
+  ]);
+ });
+
+ send({
+  type:"world",
+  blocks:world
+ });
+}
+
+function onNetworkData(d){
+ if(!d || !d.type)return;
+
+ if(d.type==="pos"){
+  remoteTarget.set(d.x,d.y,d.z);
+  remoteGroup.rotation.y=d.yaw||0;
+  remoteGroup.visible=true;
+ }
+
+ if(d.type==="block"){
+  if(d.action==="add")
+   addBlock(d.x,d.y,d.z,d.blockType,false);
+  else
+   removeBlock(d.x,d.y,d.z,false);
+
+  // Host forwards authoritative edit if required.
+ }
+
+ if(d.type==="world" && !isHost){
+  blockGroup.clear();
+  blocks.clear();
+
+  for(const b of d.blocks)
+   addBlock(b[0],b[1],b[2],b[3],false);
+
+  setStatus("Мир загружен");
+ }
+}
+
+/* ---------- HOST / JOIN ---------- */
+
+document.getElementById("host").onclick=()=>{
+ isHost=true;
+ setupPeer();
+ setStatus("Мир создан. Отправь другу свой ID.");
+};
+
+document.getElementById("join").onclick=()=>{
+ const id=document.getElementById("joinid").value.trim();
+
+ if(!id){
+  alert("Вставь ID хоста");
+  return;
+ }
+
+ isHost=false;
+ setupPeer();
+
+ const connect=()=>{
+  conn=peer.connect(id,{reliable:true});
+  setupConnection();
+  setStatus("Подключение...");
+ };
+
+ if(peer.open)connect();
+ else peer.once("open",connect);
+};
+
+document.getElementById("copy").onclick=async()=>{
+ const id=myId.textContent;
+
+ if(id==="...")return;
+
+ try{
+  await navigator.clipboard.writeText(id);
+  setStatus("ID скопирован");
+ }catch{
+  prompt("Скопируй ID:",id);
+ }
+};
+
+/* ---------- SELECTION OUTLINE ---------- */
+
+const outline=new THREE.LineSegments(
+ new THREE.EdgesGeometry(
+  new THREE.BoxGeometry(1.01,1.01,1.01)
+ ),
+ new THREE.LineBasicMaterial({color:0xffffff})
+);
+outline.visible=false;
+scene.add(outline);
+
+function updateOutline(){
+ const hit=targetBlock();
+
+ if(hit){
+  outline.visible=true;
+  outline.position.copy(hit.object.position);
+ }else{
+  outline.visible=false;
+ }
+}
+
+/* ---------- NETWORK UPDATE ---------- */
+
+let networkTimer=0;
+
+function networkUpdate(dt){
+ networkTimer+=dt;
+
+ if(networkTimer<.05)return;
+ networkTimer=0;
+
+ send({
+  type:"pos",
+  x:player.pos.x,
+  y:player.pos.y,
+  z:player.pos.z,
+  yaw:player.yaw
+ });
+}
+
+/* ---------- LOOP ---------- */
+
+const clock=new THREE.Clock();
+
+function animate(){
+ requestAnimationFrame(animate);
+
+ const dt=Math.min(clock.getDelta(),.05);
+
+ updatePlayer(dt);
+ updateOutline();
+ networkUpdate(dt);
+
+ if(remoteGroup.visible){
+  remoteGroup.position.lerp(remoteTarget,.18);
+ }
+
+ renderer.render(scene,camera);
+}
+
+animate();
+
+/* ---------- RESIZE ---------- */
+
+addEventListener("resize",()=>{
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
